@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+{% endblock %}
+
+{% block content %}
+<h2 class="section-title">Dashboard</h2>
+<p class="section-lead">This is the RealistikPanel dashboard! The home of RealistikPanel!</p>
+<div class="buttons" id="statuses">
+    <div onclick="window.open('/recent_RegisteredUsers')" class="btn btn-primary">
+        <div>
+            <h3>{{ data["RegisteredUsers"] }}</h3>
+        </div>
+        <div>
+            Registered Users
+        </div>
+    </div>
+    <div onclick="window.open('/onlineusers_list')" class="btn btn-success">
+        <div>
+            <h3>{{ data["OnlineUsers"] }}</h3>
+        </div>
+        <div>
+            Online Users
+        </div>
+    </div>
+    <div onclick="window.open('/restrictedusers_list')" class="btn btn-warning">
+        <div>
+            <h3>{{ restricteduserlist }}</h3>
+        </div>
+        <div>
+            Restricted Users
+        </div>
+    </div>
+    <div onclick="window.open('/bannedusers_list')" class="btn btn-danger">
+        <div>
+            <h3>{{ banneduserlist }}</h3>
+        </div>
+        <div>
+            Banned Users
+        </div>
+    </div>
+    <div class="btn btn-secondary">
+        <div>
+            <h3>{{ data["TotalPP"] }}</h3>
+        </div>
+        <div>
+            Total PP
+        </div>
+    </div>
+    <div class="btn btn-warning">
+        <div>
+            <h3>{{ data["TotalPlays"] }}</h3>
+        </div>
+        <div>
+            Total Plays
+        </div>
+    </div>
+    <div class="btn btn-info">
+        <div>
+            <h3>{{ data["TotalScores"] }}</h3>
+        </div>
+        <div>
+            Total Scores
+        </div>
+    </div>
+</div>
+<p></p>
+<div class="row">
+    <div class="col-12 col-md-6 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Online Users</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="PlayerChart" height="50"></canvas>
+            </div>
+            <div class="card-footer">
+                RealistikPanel
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-6">
+        <article class="article">
+            <div class="article-header">
+                <div class="article-image" data-background="{{ MostPlayed['Cover'] }}" style="background-image: url(&quot;assets/img/news/img08.jpg&quot;);">
+            </div>
+            <div class="article-title">
+                <h2><a href="#">{{ MostPlayed["SongName"] }}</a></h2>
+            </div>
+            </div>
+            <div class="article-details">
+                <p>
+                    The most played beatmap is <b>{{ MostPlayed["SongName"] }}</b>. <br>
+                    This beatmap has a playcount of <b>{{ MostPlayed["Playcount"] }}</b>
+                </p>
+                <div class="article-cta">
+                    <a target="_blank" href="{{ config['ServerURL'] }}b/{{ MostPlayed['BeatmapId'] }}" class="btn btn-primary">View Map</a>
+                </div>
+            </div>
+        </article>
+    </div>
+</div>
+<div class="section-title">Recent Plays</div>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th scope="col">Time</th>
+            <th scope="col">Player</th>
+            <th scope="col">Song</th>
+            <th scope="col">Score</th>
+            <th scope="col">PP</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for play in plays %}
+
+        <!-- Nodata on DB -->
+        {% if play["Nodata"] != 0 %}
+        <script>
+            alert("/stats \n\n최근플레이 함수실행중 {{ play['Nodata'] }}개의 비트맵이 DB에 존재하지 않습니다. \n\nDuring the execution of the RecentPlays function, {{ play['Nodata'] }}beatmap does not exist in the DB.")
+        </script>
+        {% endif %}
+        <!-- 누락곡 목록 -->
+        {% if play["Nodata_SongName"] == "Invalid..." %}
+        <script>
+            console.log("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+            alert("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+        </script>
+        {% endif %}
+
+        <tr>
+            <td>{{ play["Time"] }}</td>
+            <td><a href="{{ config['ServerURL'] }}u/{{ play['PlayerId'] }}" target="_blank">{{ play["Player"] }}</a></td>
+            <!-- <td>{{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i></td> -->
+            <!-- 최근 플레이 비트맵 이름에 링크 추가 -->
+            <td>
+                <a style="color: #dadada;" target="_blank" href="{{ config['ServerURL'] }}b/{{ play['beatmapID'] }}" class="">
+                    {{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i> 
+                </a>
+                <span style="color: pink;">
+                    {{ play["gameMode"] }}
+                </span>
+            </td>
+            <td>{{ play["Score"] }}</td>
+            <td>{{ play["pp"] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<script>
+    //Dash data
+    var labels = {{ Graph["IntervalList"]|safe }};
+    var data = {{ Graph["PlayerCount"]|safe }};
+    var ctx = document.getElementById("PlayerChart").getContext('2d');
+    var myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels, 
+        datasets: [{
+        label: 'Online Players',
+        data: data,
+        borderWidth: 2,
+        backgroundColor: 'rgba(63,82,227,.8)',
+        borderWidth: 0,
+        borderColor: 'transparent',
+        pointBorderWidth: 0,
+        pointRadius: 3.5,
+        pointBackgroundColor: 'transparent',
+        pointHoverBackgroundColor: 'rgba(63,82,227,.8)',
+        }]
+    },
+    options: {
+        legend: {
+        display: false
+        },
+        scales: {
+        yAxes: [{
+            gridLines: {
+            drawBorder: false,
+            color: '#f2f2f2',
+            },
+            ticks: {
+            beginAtZero: true,
+            stepSize: 200,
+            callback: function(value, index, values) {
+                return value;
+            }
+            }
+        }],
+        xAxes: [{
+            gridLines: {
+            display: false,
+            tickMarkLength: 15,
+            }
+        }]
+        },
+    }
+    });
+
+    /*
+    statuses for things like
+    lets
+    bancho
+    api
+    maybe soon hanayo
+    */
+    //json getting from url
+
+    var API_URL = "https://"+ window.location.host +"/js/status/api"
+    var LetsAPI = "https://"+ window.location.host +"/js/status/lets"
+    var BanchoURL = "https://"+ window.location.host +"/js/status/bancho"
+    const MediaserverURL = "https://b.redstar.moe/status"
+
+    fetch(LetsAPI)
+    .then(res => res.json())
+    .then((out) => {
+        if (out["server_status"] == 1) {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-success"><div><h3>Online</h3></div><div>LETS</div></div>'
+        } else {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>LETS</div></div>'
+        }
+    })
+    .catch(err => { document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>Bancho</div></div>' }); 
+    fetch(BanchoURL)
+    .then(res => res.json())
+    .then((out) => {
+        if (out["result"] == 1) {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-success"><div><h3>Online</h3></div><div>Bancho</div></div>'
+        }
+        else if (out["result"] == -1){
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-warning"><div><h3>Restarting</h3></div><div>Bancho</div></div>'
+        }
+        else {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>Bancho</div></div>'
+        }
+    })
+    .catch(err => { document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>Bancho</div></div>' }); 
+    fetch(API_URL)
+    .then(res => res.json())
+    .then((out) => {
+        if (out["code"] == 200) {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-success"><div><h3>Online</h3></div><div>API</div></div>'
+        } else {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>API</div></div>'
+        }
+    })
+    .catch(err => { document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>API</div></div>' }); 
+    /* Mediaserver status */
+    fetch(MediaserverURL)
+    .then(res => res.json())
+    .then((out) => {
+        if (out["code"] == 200) {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+`<div class="btn btn-success"><div><h3>Online</h3><div>osz = ${out["oszCount"]}</div></div><div>MediaServer</div></div>`
+        } else {
+            document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>MediaServer</div></div>'
+        }
+    })
+    .catch(err => { document.getElementById("statuses").innerHTML = document.getElementById("statuses").innerHTML+'<div class="btn btn-danger"><div><h3>Offline</h3></div><div>MediaServer</div></div>' }); 
+</script>
+{% endblock %}

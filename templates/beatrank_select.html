@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section-title">Select Beatmaps</h2>
+<p class="section-lead">Searched <a style="color: aqua;">{{ song_query }}</a></p>
+<div class="row">
+    <div class="col-12 col-md-6 col-lg-6">
+        {% for Beatmap in SuggestedBmaps2[0] %}
+        <article class="article">
+            <div class="article-header">
+                <div class="article-image" data-background="{{ Beatmap['Cover'] }}" style="background-image: url(&quot;{{ Beatmap['Cover'] }}&quot;);"></div>
+                <div class="article-title">
+                    <h2>{{ Beatmap["SongName"] }}</h2>
+                </div>
+            </div>
+            <div class="article-details">
+                Beatmap Created by <b style="color: yellow;">{{ Beatmap["Creator"] }}</b>!
+                <br>
+
+                <!-- Rankedby 추가 -->
+                {% if Beatmap['Rankedby'] == "Bancho" %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a style="color: pink;">{{ Beatmap['Rankedby'] }}</a>
+                    </div>
+                {% else %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ Beatmap['Rankedby'] }}">{{ Beatmap['Rankedby'] }}</a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="article-cta buttons">
+                <center>
+                    <a target="_blank" href="/rank/{{ Beatmap['BeatmapId'] }}" class="btn btn-primary">Manage Beatmap</a>
+                </center>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    <div class="col-12 col-md-6 col-lg-6">
+        {% for Beatmap in SuggestedBmaps2[1] %}
+        <article class="article">
+            <div class="article-header">
+                <div class="article-image" data-background="{{ Beatmap['Cover'] }}" style="background-image: url(&quot;{{ Beatmap['Cover'] }}&quot;);"></div>
+                <div class="article-title">
+                    <h2>{{ Beatmap["SongName"] }}</h2>
+                </div>
+            </div>
+            <div class="article-details">
+                Beatmap Created by <b style="color: yellow;">{{ Beatmap["Creator"] }}</b>!
+                <br>
+
+                <!-- Rankedby 추가 -->
+                {% if Beatmap['Rankedby'] == "Bancho" %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a style="color: pink;">{{ Beatmap['Rankedby'] }}</a>
+                    </div>
+                {% else %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ Beatmap['Rankedby'] }}">{{ Beatmap['Rankedby'] }}</a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="article-cta buttons">
+                <center>
+                    <a target="_blank" href="/rank/{{ Beatmap['BeatmapId'] }}" class="btn btn-primary">Manage Beatmap</a>
+                </center>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

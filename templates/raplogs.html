@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-title">Logs</h2>
+<p class="section-lead">See all the actions moderators have taken! Catch any traitors or abusers.</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Actions Log</h4>
+    </div>
+    <div class="card-body">
+        Here, you can view any administritive actions taken by administrators, as well as any Fokabot errors. This can be used to view any mistakes moderators have taken or catch any misbehaviour within the staff team.
+    </div>
+    <div class="card-footer">
+        RealistikPanel
+    </div>
+</div>
+{% for log in Logs %}
+<div class="card">
+    <div class="card-header">
+        <img alt="image" src="{{ config['AvatarServer'] }}{{ log['AccountData']['Id'] }}" class="rounded-circle mr-1" style="width:100%; max-width:30px; max-height:30px;">
+        <h4>{{ log["AccountData"]["Username"] }}</h4>
+    </div>
+    <div class="card-body">
+        <b>{{ log["AccountData"]["Username"] }}</b> {{ log['Text'] }}
+    </div>
+    <div class="card-footer">
+        At {{ log["Time"] }} via {{ log["Via"] }}
+    </div>
+</div>
+{% endfor %}
+
+<!--The page buttons-->
+<ul class="pagination">
+
+    {% if page <= 1 %}
+    <li class="page-item disabled">
+    {% else %}
+    <li class="page-item">
+    {% endif %}
+        <a class="page-link" href="/logs/{{ page-1 }}" aria-label="Previous">
+            <span aria-hidden="true">«</span>
+            <span class="sr-only">Previous</span>
+        </a>
+    </li>
+
+    <script>
+        alert("맨 아래 버튼 15배수만큼 줄바꿈됨 \n\nBottom button wraps by multiples of 15")
+    </script>
+
+    {% for Page in Pages %}
+
+    <!-- 줄바꿈 조건문 -->
+    {% if Page%16==0 %}
+<!-- ul 끊기 -->
+</ul>
+    <!-- 줄바꿈 -->
+    <br>
+    <!-- ul생성 (줄바꿈) -->
+    <ul class="pagination">
+        {% if page == Page %}
+        <li class="page-item active">
+        {% else %}
+        <li class="page-item">
+        {% endif %}
+            <a class="page-link" href="/logs/{{ Page }}">{{ Page }}</a>
+        </li>
+    <!-- </ul> -->
+    {% endif %}
+
+    {% if page == Page %}
+    <li class="page-item active">
+    {% else %}
+    <li class="page-item">
+    {% endif %}
+        <a class="page-link" href="/logs/{{ Page }}">{{ Page }}</a>
+    </li>
+    {% endfor %}
+
+
+    {% if page == Pages[-1] %}
+    <li class="page-item disabled">
+    {% else %}
+    <li class="page-item">
+    {% endif %}
+        <a class="page-link" href="/logs/{{ page+1 }}" aria-label="Next">
+            <span aria-hidden="true">»</span>
+            <span class="sr-only">Next</span>
+        </a>
+    </li>
+</ul>
+{% endblock %}

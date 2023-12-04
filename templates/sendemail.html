@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-title">Send Email</h2>
+<p class="section-lead">Sending Email</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Send Email!</h4>
+    </div>
+    <div class="card-body">
+        <form action="/sendemail" method="post">
+            <div class="form-group">
+                Choose according to the format!<br>
+                <label>email</label>
+                <input type="email" class="form-control" name="email">
+
+                <label>Subject</label>
+                <input type="text" class="form-control" name="subject">
+
+                <label>Message</label>
+                <input type="text" class="form-control" name="msg">
+            </div>
+            <button class="btn btn-primary mr-1" type="submit" name="">Send</button>
+        </form>
+    </div>
+    <div class="card-footer">
+        RealistikPanel!
+    </div>
+</div>
+{% endblock %}

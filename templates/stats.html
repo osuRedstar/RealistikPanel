@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+{% endblock %}
+
+{% block content %}
+<h2 class="section-title">Server Statistics</h2>
+<p class="section-lead">View and explore that data and statistcs side of your server.</p>
+<div class="buttons">
+    <div class="btn btn-primary">
+        <div>
+            <h3>{{ StatData["ActiveToday"] }}</h3>
+        </div>
+        <div>
+            Active Today
+        </div>
+    </div>
+    <div class="btn btn-danger">
+        <div>
+            <h3>{{ StatData["DisallowedCount"] }}</h3>
+        </div>
+        <div>
+            Banned Users
+        </div>
+    </div>
+</div>
+<h2 class="section-title">Activity Graphs</h2>
+<div class="row">
+    <div class="col-12 col-md-6 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Registrations</h4>
+            </div>
+            <div class="card-body">
+                <canvas id="RegisterChart" height="50"></canvas>
+            </div>
+            <div class="card-footer">
+                RealistikPanel
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 col-lg-6">
+        <!--To Be Done-->
+    </div>
+</div>
+<h2 class="section-title">Extended recent plays graph</h2>
+<p class="section-lead">Rather than viewing the usual 20 recent plays in the dash, this shows the 1000 most recent plays.</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Recent Plays</h4>
+    </div>
+    <div class="card-body">
+        <h3>Filters</h3>
+        Choose the minimum PP value that plays are required to have to appear on the list. The current value is <b>{{ MinPP }}</b>.
+        <form action="/stats" method="post">
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <input type="number" class="form-control" name="minpp" min="0" value="{{ MinPP }}" style="margin-top: 5px; margin-bottom: 10px;">
+                </div>
+                <div class="col-12 col-md-6 col-lg-6">
+                    <button class="btn btn-success" type="submit" name="" style="margin-top: 8px;">Filter</button>
+                </div>
+            </div>
+        </form>
+
+        <br>
+        <h3>Filters Relax by Username or Userid</h3>
+        Input username or userid
+        <form action="/stats" method="post">
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <input type="text" class="form-control" name="user" style="margin-top: 5px; margin-bottom: 10px;">
+                </div>
+                <div class="col-12 col-md-6 col-lg-6">
+                    <button class="btn btn-success" type="submit" name="" style="margin-top: 8px;">Select</button>
+                </div>
+            </div>
+        </form>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Player</th>
+
+                    <th scope="col">Replay</th>
+                    <th scope="col">ranked_status</th>
+
+                    <th scope="col">Song</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">PP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for play in StatData["RecentPlays"] %}
+
+                <!-- Nodata on DB -->
+                {% if play["Nodata"] != 0 %}
+                    <script>
+                        alert("/stats \n\n최근플레이 함수실행중 {{ play['Nodata'] }}개의 비트맵이 DB에 존재하지 않습니다. \n\nDuring the execution of the RecentPlays function, {{ play['Nodata'] }}beatmap does not exist in the DB.")
+                    </script>
+                {% endif %}
+                <!-- 누락곡 목록 -->
+                {% if play["Nodata_SongName"] == "Invalid..." %}
+                    <script>
+                        console.log("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+                        alert("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+                    </script>
+                {% endif %}
+
+                <tr>
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                {{ play["Time"] }}
+                            </del>
+                        {% else %}
+                            {{ play["Time"] }}
+                        {% endif %}
+                        
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <a href="{{ config['ServerURL'] }}u/{{ play['PlayerId'] }}" target="_blank">
+                                    {{ play["Player"] }}
+                                </a>
+                            </del>
+                        {% else %}
+                            <a href="{{ config['ServerURL'] }}u/{{ play['PlayerId'] }}" target="_blank">
+                                {{ play["Player"] }}
+                            </a>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_relax/{{ play['scoreID'] }}">
+                                    Download
+                                </a>
+                            </del>
+                        {% else %}
+                            <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_relax/{{ play['scoreID'] }}">
+                                Download
+                            </a>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <span class="ranked_status" style="color: red;">
+                                    [{{ play["ranked"][0] }}]
+                                </span>
+                            </del>
+                        {% else %}
+                            <span class="ranked_status" style="color: red;">
+                                [{{ play["ranked"][0] }}]
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <a style="color: #dadada;" target="_blank" href="{{ config['ServerURL'] }}b/{{ play['beatmapID'] }}" class="">
+                                    {{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i>
+                                </a>
+                                <span style="color: pink;">
+                                    {{ play["gameMode"] }}
+                                </span>
+                            </del>
+                        {% else %}
+                            <a style="color: #dadada;" target="_blank" href="{{ config['ServerURL'] }}b/{{ play['beatmapID'] }}" class="">
+                                {{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i>
+                            </a>
+                            <span style="color: pink;">
+                                {{ play["gameMode"] }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                {{ play["Score"] }}
+                            </del>
+                        {% else %}
+                            {{ play["Score"] }}
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                {{ play["pp"] }}
+                            </del>
+                        {% else %}
+                            {{ play["pp"] }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <!-- line 118 -->
+            <script>
+                rs = document.getElementsByClassName("ranked_status")
+                for (let i = 0; i < rs.length; i++) {
+                    if (rs[i].innerText == "[Ranked]") {
+                        rs[i].style.color = "#6777ef"
+                    }
+                    if (rs[i].innerText == "[Loved]") {
+                        rs[i].style.color = "#AA336A"
+                    }
+                    if (rs[i].innerText == "[Approved]") {
+                        rs[i].style.color = "green"
+                    }
+                    if (rs[i].innerText == "[Qualified]") {
+                        rs[i].style.color = "green"
+                    }
+                    if (rs[i].innerText == "[Unranked]") {
+                        rs[i].style.color = "red"
+                    }
+                }
+            </script>
+            
+        </table>
+    </div>
+    <div class="card-footer">
+        RealistikPanel
+    </div>
+</div>
+<script>
+    //js is spooky
+    var labels = {{ StatData["RegisterGraph"]["DateList"]|safe }};
+    var data = {{ StatData["RegisterGraph"]["RegisterList"]|safe }};
+    var ctx = document.getElementById("RegisterChart").getContext('2d');
+    var myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels, 
+        datasets: [{
+        label: 'Registered Players',
+        data: data,
+        borderWidth: 2,
+        backgroundColor: 'rgba(63,82,227,.8)',
+        borderWidth: 0,
+        borderColor: 'transparent',
+        pointBorderWidth: 0,
+        pointRadius: 3.5,
+        pointBackgroundColor: 'transparent',
+        pointHoverBackgroundColor: 'rgba(63,82,227,.8)',
+        }]
+    },
+    options: {
+        legend: {
+        display: false
+        },
+        scales: {
+        yAxes: [{
+            gridLines: {
+            drawBorder: false,
+            color: '#f2f2f2',
+            },
+            ticks: {
+            beginAtZero: true,
+            stepSize: 200,
+            callback: function(value, index, values) {
+                return value;
+            }
+            }
+        }],
+        xAxes: [{
+            gridLines: {
+            display: false,
+            tickMarkLength: 15,
+            }
+        }]
+        },
+    }
+    });
+</script>
+{% endblock %}

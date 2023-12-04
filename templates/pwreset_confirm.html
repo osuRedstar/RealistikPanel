@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="section-title">Reset password</h2>
+<p class="section-lead">Reset your password!</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Reset password</h4>
+    </div>
+    <div class="card-body">
+        <form action="" method="post">
+            <div class="form-group">
+                Input Your key!<br>
+                <label>Key Exfired will 5 Minute</label>
+                <input type="text" class="form-control" name="code">
+            </div>
+            <button class="btn btn-primary mr-1" type="submit" name="">Submit</button>
+        </form>
+    </div>
+    <div class="card-footer">
+        RealistikPanel!
+    </div>
+</div>
+
+<script>
+    let pw = "{{ pw }}" == "True" ? true : false
+    let password = "{{ password }}" == "None" ? false : true
+
+    if (!pw) {
+        alert("Check Your Email!")
+    }
+    else {
+        const div = document.createElement("div")
+
+        div.classList.add("card")
+        div.innerHTML = `
+            <div class="card-header">
+                <h4>new password</h4>
+            </div>
+            <div class="card-body">
+                <form action="" method="post">
+                    <div class="form-group">
+                        Input Your New password!<br>
+                        <label>Now Password</label>
+                        <input type="password" class="form-control" name="password">
+                    </div>
+                    <button class="btn btn-primary mr-1" type="submit" name="">Submit</button>
+                </form>
+            </div>
+            <div class="card-footer">
+                RealistikPanel!
+            </div>
+        `
+        document.querySelector("section").appendChild(div)
+
+        document.querySelector("input").placeholder = "{{ code }}"
+        document.querySelector("button").style.display = "none"
+    }
+
+    if (password) {
+        document.head.innerHTML = `<meta http-equiv="refresh" content="3;url=https://redstar.moe/login">`
+        document.body.innerHTML = `<h1 style="text-align: center;">password changed!! Redirect loginpage after 3sec</h1>`
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-title">Send Foka Message</h2>
+<p class="section-lead">Send messages in-game using the Devlant bot.</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Send Foka Message!</h4>
+    </div>
+    <div class="card-body">
+        <form action="/fokamessage" method="post">
+            <div class="form-group">
+                Choose according to the format!<br>
+                <label>Channel</label>
+                <input type="text" class="form-control" name="channel">
+
+                <label>Message</label>
+                <input type="text" class="form-control" name="message">
+            </div>
+            <button class="btn btn-primary mr-1" type="submit" name="">Send</button>
+        </form>
+    </div>
+    <div class="card-footer">
+        RealistikPanel!
+    </div>
+</div>
+{% endblock %}

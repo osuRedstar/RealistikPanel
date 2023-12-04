@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4>Quick Actions</h4>
+    </div>
+    <div class="card-body">
+        <div class="buttons">
+            <a target="_blank" href="https://redstar.moe/d/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn btn-success">Download</a>
+            <a target="_blank" href="osu://dl/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn btn-primary" style="color: white;">osu!direct</a>
+            <a target="_blank" href="https://osu.ppy.sh/beatmapsets/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn" style="background-color: #fc4b98; box-shadow: 0 2px 6px #f798c1; border-color: #ff66a8; color: white;">View On Bancho</a> <!-- PINK FOR BROOM -->
+            
+            <a id="play()" onclick="Play()" class="btn btn-primary" style="color: white;">Play (b.redstar.moe)</a>
+            <a onclick="Pause()" class="btn btn-primary" style="color: white;">Pause</a>
+            <audio id="BeatmapAudio">
+                <!-- <source src="https://b.ppy.sh/preview/{{ beatdata[0][0]['BeatmapsetId'] }}" type="audio/mpeg"> --> <!--RealistikOsu song API :pray:-->
+                <!-- <source src="https://b.ppy.sh/preview/{{ beatdata[0][0]['BeatmapsetId'] }}.mp3" type="audio/mp3"> -->
+                <!-- <source src="https://catboy.best/preview/audio/{{ beatdata[0][0]['BeatmapId'] }}" type="audio/mp3"> -->
+                <source src="https://b.redstar.moe/preview/{{ beatdata[0][0]['BeatmapsetId'] }}.mp3" type="audio/mp3">
+                <script>
+                    console.log("https://b.redstar.moe/preview/{{ beatdata[0][0]['BeatmapsetId'] }}.mp3")
+                </script>
+                Your browser does not support the audio element.
+            </audio>
+            <a id="current_time" class="btn btn-primary" style="color: aqua;">NaN / NaN</a>
+        </div>
+        <div class="buttons">
+            <a href="/action/rankset/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn btn-success">Rank All</a>
+            <a href="/action/approvedset/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn btn-success">Approved All</a>
+            <a href="/action/loveset/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn" style="background-color: #fc4b98; box-shadow: 0 2px 6px #f798c1; border-color: #ff66a8; color: white;">Love All</a>
+            <a href="/action/qualifiedset/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn btn-secondary">Qualified All</a>
+            <a href="/action/unrankset/{{ beatdata[0][0]['BeatmapsetId'] }}" class="btn btn-secondary">Unrank All</a>
+        </div>
+    </div>
+    <div class="card-footer">
+        RealistikPanel
+    </div>
+</div>
+<div class="row">
+    <div class="col-12 col-md-6 col-lg-6">
+        {% for beatmap in beatdata[0] %}
+        <article class="article">
+            <div class="article-header">
+                <div class="article-image" data-background="{{ beatmap['Cover'] }}" style="background-image: url(&quot;{{ beatmap['Cover'] }}&quot;);">
+                </div>
+                <div class="article-title">
+                    <h2><a href="{{ config['ServerURL'] }}b/{{ beatmap['BeatmapId'] }}">{{ beatmap["SongName"] }} {{ beatmap["Difficulty"] }}☆</a></h2>
+                </div>
+            </div>
+            <div class="article-details">
+                <p>Change the ranking status for this song!</p>
+
+                <!-- Rankedby 추가 -->
+                {% if beatmap['Rankedby'] == "Bancho" %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a style="color: pink;">{{ beatmap['Rankedby'] }}</a>
+                    </div>
+                    <br>
+                    <br>
+                {% else %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ beatmap['Rankedby'] }}">{{ beatmap['Rankedby'] }}</a>
+                    </div>
+                    <br>
+                    <br>
+                {% endif %}
+
+                <form action="/rank/{{ Id }}" method="post">
+                    <label>Beatmap ID</label>
+                    <input type="text" class="form-control" value="{{ beatmap['BeatmapId'] }}" name='bmapid-{{ beatmap["BmapNumber"] }}' readonly="readonly">
+                    <label>Status</label>
+                    <select class="form-control" name='rankstatus-{{ beatmap["BmapNumber"] }}'>
+                        {% if beatmap["Ranked"] == 0 %}
+                            <option selected>Unranked</option>
+                        {% else %}
+                            <option>Unranked</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 4 %}
+                            <option selected>Qualified</option>
+                        {% else %}
+                            <option>Qualified</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 5 %}
+                            <option selected>Loved</option>
+                        {% else %}
+                            <option>Loved</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 3 %}
+                        <option selected>Approved</option>
+                        {% else %}
+                        <option>Approved</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 2 %}
+                            <option selected>Ranked</option>
+                        {% else %}
+                            <option>Ranked</option>
+                        {% endif %}
+                    </select>
+                    <input type="hidden" name="beatmapnumber" value='{{ beatmap["BmapNumber"] }}'>
+                    <p></p> <!--Seperator-->
+                    <div style="text-align: center; margin-bottom: 6px;">
+                        <a target="_blank" href="https://preview.nerinyan.moe/#{{ beatmap['BeatmapId'] }}" class="btn" style="background-color: #fc4b98; color: white;">Preview Beatmap</a>
+                        <a target="_blank" href="https://peppy.pages.dev/preview#{{ beatmap['BeatmapId'] }}" class="btn" style="background-color: #fc4b98; color: white;">Preview Beatmap2</a>
+                    </div>
+                    <div id="pp-{{ beatmap['BmapNumber'] }}" class="pptext">
+                        <a onclick="CalcPP({{ beatmap['BmapNumber'] }}, '{{ beatmap['BeatmapId'] }}')" class="btn btn-primary" style="color: white;">Calculate PP</a>
+                    </div>
+                    <div class="article-cta">
+                        <button class="btn btn-success" type="submit" name="">Apply!</button>
+                    </div>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    <div class="col-12 col-md-6 col-lg-6">
+        {% for beatmap in beatdata[1] %}
+        <article class="article">
+            <div class="article-header">
+                <div class="article-image" data-background="{{ beatmap['Cover'] }}" style="background-image: url(&quot;{{ beatmap['Cover'] }}&quot;);">
+                </div>
+                <div class="article-title">
+                    <h2><a href="{{ config['ServerURL'] }}b/{{ beatmap['BeatmapId'] }}">{{ beatmap["SongName"] }} {{ beatmap["Difficulty"] }}☆</a></h2>
+                </div>
+            </div>
+            <div class="article-details">
+                <p>Change the ranking status for this song!</p>
+
+                <!-- Rankedby 추가 -->
+                {% if beatmap['Rankedby'] == "Bancho" %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a style="color: pink;">{{ beatmap['Rankedby'] }}</a>
+                    </div>
+                    <br>
+                    <br>
+                {% else %}
+                    <div>
+                        <a style="color: yellow;">Beatmap Ranked by </a>
+                        <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ beatmap['Rankedby'] }}">{{ beatmap['Rankedby'] }}</a>
+                    </div>
+                    <br>
+                    <br>
+                {% endif %}
+
+                <form action="/rank/{{ Id }}" method="post">
+                    <label>Beatmap ID</label>
+                    <input type="text" class="form-control" value="{{ beatmap['BeatmapId'] }}" name='bmapid-{{ beatmap["BmapNumber"] }}' readonly="readonly">
+                    <label>Status</label>
+                    <select class="form-control" name='rankstatus-{{ beatmap["BmapNumber"] }}'>
+                        {% if beatmap["Ranked"] == 0 %}
+                            <option selected>Unranked</option>
+                        {% else %}
+                            <option>Unranked</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 4 %}
+                            <option selected>Qualified</option>
+                        {% else %}
+                            <option>Qualified</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 5 %}
+                            <option selected>Loved</option>
+                        {% else %}
+                            <option>Loved</option>
+                        {% endif %}
+
+                        {% if beatmap["Ranked"] == 3 %}
+                        <option selected>Approved</option>
+                        {% else %}
+                        <option>Approved</option>
+                        {% endif %}
+                        
+                        {% if beatmap["Ranked"] == 2 %}
+                            <option selected>Ranked</option>
+                        {% else %}
+                            <option>Ranked</option>
+                        {% endif %}
+                    </select>
+                    <input type="hidden" name="beatmapnumber" value='{{ beatmap["BmapNumber"] }}'>
+                    <p></p> <!--Seperator-->
+                    <div style="text-align: center; margin-bottom: 6px;">
+                        <a target="_blank" href="https://preview.nerinyan.moe/#{{ beatmap['BeatmapId'] }}" class="btn" style="background-color: #fc4b98; color: white;">Preview Beatmap</a>
+                        <a target="_blank" href="https://peppy.pages.dev/preview#{{ beatmap['BeatmapId'] }}" class="btn" style="background-color: #fc4b98; color: white;">Preview Beatmap2</a>
+                    </div>
+                    <div id="pp-{{ beatmap['BmapNumber'] }}" class="pptext">
+                        <a onclick="CalcPP({{ beatmap['BmapNumber'] }}, '{{ beatmap['BeatmapId'] }}')" class="btn btn-primary" style="color: white;">Calculate PP</a>
+                    </div>
+                    <div class="article-cta">
+                        <button class="btn btn-success" type="submit" name="">Apply!</button>
+                    </div>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</div>
+<script>
+    //for playing and stopping bmap music
+    var audio = document.getElementById("BeatmapAudio");
+    
+    audio.addEventListener('loadedmetadata', () => {
+        document.getElementById("current_time").innerText = `0.0 / ${Math.round(audio.duration * 10) / 10}`
+    });
+
+    function Play() { 
+        audio.volume = 0.2
+        audio.play();
+        console.log(`Audio Volume = ${audio.volume}`)
+    } 
+
+    function Pause() { 
+        audio.pause(); 
+    } 
+    
+    /* 현재 오디오 플레이 정보 */
+    audio.addEventListener("timeupdate", function(){
+        current_time = Math.round(audio.currentTime * 10) / 10
+        document.getElementById("current_time").innerText = `${Math.round(audio.currentTime * 10) / 10} / ${Math.round(audio.duration * 10) / 10}`
+    });
+    audio.addEventListener("ended", function(){
+        document.getElementById("current_time").innerText = `0 / ${Math.round(audio.duration * 10) / 10}`
+    });
+    
+
+    function CalcPP(BeatmapNr, BeatmapID) {
+        //turn it into a loading thing
+        document.getElementById("pp-"+BeatmapNr).innerHTML = '<a onclick="" class="btn btn-primary btn-progress" style="color: white;">Calculate PP</a>'
+        //json getting from url
+        let url = "https://"+ window.location.host +"/js/pp/"+BeatmapID;
+
+        fetch(url)
+        .then(res => res.json())
+        .then((out) => {
+        // doing things
+        if (out["code"] == 200) {
+            document.getElementById("pp-"+BeatmapNr).innerHTML = "<a class='badge badge-info rightrem' style='color: white;'>No Mod: " + out["pp"] + "pp</a><a class='badge badge-danger leftrem' style='color: white;'>DT: " + out["dtpp"] + "pp</a>"
+        }
+        else {
+            document.getElementById("pp-"+BeatmapNr).innerHTML = "<a class='badge badge-danger' style='color: white;'>Calculation Error!</a>"
+        }
+        })
+        .catch(err => { throw err }); 
+    }
+</script>
+{% endblock %}
