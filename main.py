@@ -379,15 +379,23 @@ def give_betatag(id):
 @app.route("/frontend/rankedby/<id>")
 def ranked_by(id):
     mycursor.execute("SELECT rankedby FROM beatmaps WHERE beatmap_id = {}".format(id))
-    rankedby = mycursor.fetchone()[0]
+    try:
+        rankedby = mycursor.fetchone()[0]
+    except:
+        log.error(f"{id} rankedby 조회 실패!")
+        rankedby = ""
     return rankedby
 
 """ ranked_status http """
 @app.route("/frontend/ranked_status/<id>")
 def ranked_status(id):
     mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = {}".format(id))
-    ranked = mycursor.fetchone()[0]
-    
+    try:
+        ranked = mycursor.fetchone()[0]
+    except:
+        log.error(f"{id} ranked_status 조회 실패!")
+        return '["", ""]'
+
     if ranked == 2:
         return f'["Ranked", 2]'
         #return "Ranked"
