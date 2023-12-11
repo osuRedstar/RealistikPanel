@@ -5,6 +5,12 @@
 {% endblock %}
 
 {% block content %}
+
+<script>
+    const title = document.querySelector("title")
+    title.innerText = title.innerText.replace("Relax", "{{ StatData[0]['Player'] }}'s Relax")
+</script>
+
 <div class="card">
     <div class="card-header">
         <h4>{{ StatData[0]["Player"] }}'s Relax Recent Plays ({{ type }})</h4>
