@@ -626,20 +626,22 @@ def RankBeatmap(BeatmapNumber, BeatmapId, ActionName, session):
         ActionName = 3
     elif ActionName == "Qualified":
         ActionName = 4
-
     else:
         print(" Received alien input from rank. what?")
         return
+
+    mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", (BeatmapId,))
+    oldRank = mycursor.fetchone()[0]
     mycursor.execute("UPDATE beatmaps SET ranked = %s, ranked_status_freezed = 1 WHERE beatmap_id = %s LIMIT 1", (ActionName, BeatmapId,))
     #mycursor.execute("UPDATE scores s JOIN (SELECT userid, MAX(score) maxscore FROM scores JOIN beatmaps ON scores.beatmap_md5 = beatmaps.beatmap_md5 WHERE beatmaps.beatmap_md5 = (SELECT beatmap_md5 FROM beatmaps WHERE beatmap_id = %s LIMIT 1) GROUP BY userid) s2 ON s.score = s2.maxscore AND s.userid = s2.userid SET completed = 3", (BeatmapId,))
     mydb.commit()
-    Webhook(BeatmapId, ActionName, session)
+    Webhook(BeatmapId, ActionName, session, oldRank)
 
 def FokaMessage(params) -> None:
     """Sends a fokabot message."""
     requests.get(f"{UserConfig['BanchoURL']}api/v1/fokabotMessage", params=params)
 
-def Webhook(BeatmapId, ActionName, session):
+def Webhook(BeatmapId, ActionName, session, oldRank):
     """Beatmap rank webhook."""
 
     mycursor.execute("SELECT difficulty_std, difficulty_taiko, difficulty_ctb, difficulty_mania FROM beatmaps WHERE beatmap_id = %s", (BeatmapId,))
@@ -696,6 +698,17 @@ def Webhook(BeatmapId, ActionName, session):
     if ActionName == 4:
         TitleText = "Qualified!"
 
+    if oldRank == 0:
+        oldRank = "unranked..."
+    if oldRank == 2:
+        oldRank = "ranked!"
+    if oldRank == 5:
+        oldRank = "loved!"
+    if oldRank == 3:
+        oldRank = "Approved!"
+    if oldRank == 4:
+        oldRank = "Qualified!"
+
     webhook = DiscordWebhook(url=URL) #creates webhook
     # me trying to learn the webhook
     #EmbedJson = { #json to be sent to webhook
@@ -712,7 +725,7 @@ def Webhook(BeatmapId, ActionName, session):
     #}
     #requests.post(URL, data=EmbedJson, headers=headers) #sends the webhook data
     embed = DiscordEmbed(description=f"Status Changed by {session['AccountName']}", color=242424) #this is giving me discord.py vibes
-    embed.set_author(name=f"{mapa[0]} was just {TitleText} (Beatmap)", url=f"{UserConfig['ServerURL']}b/{BeatmapId}", icon_url=f"{UserConfig['AvatarServer']}{session['AccountId']}")
+    embed.set_author(name=f"{mapa[0]} was just {oldRank} --> {TitleText} (Beatmap)", url=f"{UserConfig['ServerURL']}b/{BeatmapId}", icon_url=f"{UserConfig['AvatarServer']}{session['AccountId']}")
     embed.set_footer(text="via RealistikPanel!")
     #embed.set_image(url=f"https://assets.ppy.sh/beatmaps/{mapa[1]}/covers/cover.jpg")
     embed.set_image(url=f"https://b.redstar.moe/bg/{BeatmapId}")
