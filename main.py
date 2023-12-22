@@ -864,8 +864,8 @@ def send_ban_mail():
             userID = request.form["userid"]
             mycursor.execute(f"SELECT email FROM users WHERE id = {userID}")
             email = mycursor.fetchone()[0]
-            msg = request.form["msg"]
-            sendBanMail(session, userID, email, msg)
+            beatmapInfo = {"bid": request.form["bid"], "beatmapInfo": request.form["msg"]}
+            sendBanMail(session, userID, email, beatmapInfo)
             return render_template("sendbanmail.html", title="Send Ban Mail", data=DashData(), session=session, config=UserConfig, success=f"Successfully Send Ban mail! to {email}")
         else:
             redirect_url = request.url.replace("http", "https")
