@@ -2784,20 +2784,8 @@ def sendPwresetMail(session, userID, to_email):
 
     return key
 
-def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
-    mycursor.execute(f"SELECT users.username AS username, users_stats.country AS country FROM users JOIN users_stats ON users.id = users_stats.id WHERE users.id = {userID}")
-    result = mycursor.fetchone()
-    username = result[0]
-    country = result[1].upper()
-
-    # 보내는 사람 이메일 계정 정보
-    sender_email = UserConfig['Email']
-    sender_password = UserConfig['EmailPassword']
-
-    # 이메일 메시지 설정
-    subject = f"{username}, Your Account's Status is Changed"
+def emailBody(country, username, beatmapInfo):
     #765 MILLION ALLSTARS - UNION!! [We are all MILLION!!] +TD(NV), HD, HR, DT, RX (100.0%)
-
     if country == "KR" or country == "KP":
         body = f"""
 <html lang="kr">
@@ -2885,11 +2873,13 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
                     <br>
                     - 컴퓨터 재부팅
                     <br>
-                    - 시계
+                    - 시계 (만약 시간을 증명할 방법이 없으면 <a style="color: green; text-decoration: none;" target="_blank" href="https://www.unixtimestamp.com">https://www.unixtimestamp.com</a> 으로 가서 F5를 눌러서 증명하는 방법도 있습니다.)
                     <br>
                     - 핸드캠
                     <br>
                     - 작업 관리자 프로세스를 끝까지 아래로 내린 후 바로 osu!를 실행
+                    <br>
+                    - 다시 작업 관리자 프로세스를 끝까지 아래로 내림
                     <br>
                     - 계정의 최고 pp 기록 #1 ~ #10 중 최소 2개를 다시 시연하거나 그와 비슷한 pp기록을 세웁니다.
                     <br>
@@ -2929,11 +2919,19 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
           <div style="max-width: 600px;padding: 0 20px; font-weight: 400;margin: 0 auto;text-align: left;">
             <div style="padding: 20px 0 40px 0;border-top: 1px solid rgb(231,235,238);font-weight: 400; text-align: center;">
     
-              <!-- <a style="cursor: pointer; color: rgb(104,114,118); font-weight: 500;text-decoration: none;">
+              <a style="cursor: pointer; color: rgb(104,114,118); font-weight: 500;text-decoration: none;">
               
                   RedstarOSU!
 
-              </a> -->
+              </a>
+
+              <p>
+                이 이메일은 python을 통해 자동으로 보내진 이메일 입니다.
+              </p>
+    
+              <p>
+                당신의 국가가 KR 또는 KP 이므로 한국어로 이메일이 전송되었습니다. 당신의 국가:{country}
+              </p>
     
             </div>
           </div>
@@ -3032,11 +3030,13 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
                   <br>
                   - Reboot your computer
                   <br>
-                  - Clock
+                  - Clock (If there is no way to prove the time, go to <a style="color: green; text-decoration: none;" target="_blank" href="https://www.unixtimestamp.com">https://www.unixtimestamp.com</a> You can also go ahead and press F5 to prove it.)
                   <br>
                   - handcam
                   <br>
                   - scrolling the Task Manager processes, and run osu! immediately
+                  <br>
+                  - scrolling the Task Manager processes Again
                   <br>
                   - Re-demonstrate at least two of the account's best performance pp records 1 to 10 or equivalent.
                   <br>
@@ -3076,11 +3076,19 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
           <div style="max-width: 600px;padding: 0 20px; font-weight: 400;margin: 0 auto;text-align: left;">
             <div style="padding: 20px 0 40px 0;border-top: 1px solid rgb(231,235,238);font-weight: 400; text-align: center;">
     
-              <!-- <a style="cursor: pointer; color: rgb(104,114,118); font-weight: 500;text-decoration: none;">
+              <a style="cursor: pointer; color: rgb(104,114,118); font-weight: 500;text-decoration: none;">
               
                   RedstarOSU!
 
-              </a> -->
+              </a>
+
+              <p>
+                This email is automatically sent through python.
+              </p>
+    
+              <p>
+                The email was sent in English because your country is not KR or KP. Your country:{country}
+              </p>
     
             </div>
           </div>
@@ -3092,6 +3100,21 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
     </body>
 </html>
 """
+    return body
+
+def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
+    mycursor.execute(f"SELECT users.username AS username, users_stats.country AS country FROM users JOIN users_stats ON users.id = users_stats.id WHERE users.id = {userID}")
+    result = mycursor.fetchone()
+    username = result[0]
+    country = result[1].upper()
+
+    # 보내는 사람 이메일 계정 정보
+    sender_email = UserConfig['Email']
+    sender_password = UserConfig['EmailPassword']
+
+    # 이메일 메시지 설정
+    subject = f"{username}, Your Account's Status is Changed"
+    body = emailBody(country, username, beatmapInfo)
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
@@ -3112,9 +3135,11 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
 
     return mailSend(session, sender_email, sender_password, to_email, msg, type="AutoBan")
 
-def sendBanMail(session, userID, to_email, msg):
-    mycursor.execute(f"SELECT username FROM users WHERE id = {userID}")
-    username = mycursor.fetchone()[0]
+def sendBanMail(session, userID, to_email, beatmapInfo):
+    mycursor.execute(f"SELECT users.username AS username, users_stats.country AS country FROM users JOIN users_stats ON users.id = users_stats.id WHERE users.id = {userID}")
+    result = mycursor.fetchone()
+    username = result[0]
+    country = result[1].upper()
 
     # 보내는 사람 이메일 계정 정보
     sender_email = UserConfig['Email']
@@ -3122,13 +3147,13 @@ def sendBanMail(session, userID, to_email, msg):
 
     # 이메일 메시지 설정
     subject = f"{username}, Your Account's Status is Banned"
-    body = msg
+    body = emailBody(country, username, beatmapInfo)
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
     msg['To'] = to_email
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    msg.attach(MIMEText(body, 'html'))
 
     return mailSend(session, sender_email, sender_password, to_email, msg, type="Ban")
 
@@ -3145,6 +3170,6 @@ def sendEmail(session, to_email, subject, msg):
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
     msg['To'] = to_email
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    msg.attach(MIMEText(body, 'html'))
 
     return mailSend(session, sender_email, sender_password, to_email, msg, type="")
