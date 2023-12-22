@@ -12,10 +12,13 @@
             <div class="form-group">
                 Choose according to the format!<br>
                 <label>userID</label>
-                <input type="text" class="form-control" name="userid">
+                <input type="number" class="form-control" name="userid" required>
 
-                <label>Message</label>
-                <input type="text" class="form-control" name="msg">
+                <label>Reason</label>
+                <input type="text" class="form-control" name="msg" placeholder="ex) xi - over the top [Above the stars] +HDDTRX (96.05%) 3543.93pp" required>
+
+                <label>Beatmap ID</label>
+                <input type="number" class="form-control" name="bid" placeholder="ex) 1821147 (없으면 0 적으세요, If not, enter 0)" required>
             </div>
             <button class="btn btn-primary mr-1" type="submit" name="">Send</button>
         </form>
