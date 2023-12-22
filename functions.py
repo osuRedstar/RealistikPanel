@@ -3101,12 +3101,12 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
 
     #DashData()
     try:
-        AuthKeyCheck = r.get('RealistikPanel:AutoBanMailAuthKey').decode("utf-8")
+        AuthKeyCheck = r.get(f"RealistikPanel:AutoBanMailAuthKey:{userID}").decode("utf-8")
     except:
         return 404
 
     if AuthKey == AuthKeyCheck:
-        r.delete("RealistikPanel:AutoBanMailAuthKey")
+        r.delete(f"RealistikPanel:AutoBanMailAuthKey:{userID}")
     else:
         return 403
 
