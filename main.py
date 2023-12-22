@@ -728,7 +728,7 @@ def pw_reset(id):
         try:
             password = request.form["password"]
             #ChangePassword(id, password)
-            ChangePWForm(form={"accid": id, "newpass": password}, session={"AccountId": 999})
+            ChangePWForm(form={"accid": id, "newpass": password}, session={"AccountId": id})
 
             mycursor.execute(f"DELETE FROM password_recovery WHERE u = '{username}' AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1")
             mydb.commit()
