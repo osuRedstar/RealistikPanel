@@ -2776,7 +2776,7 @@ def sendPwresetMail(session, userID, to_email):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = to_email
+    msg['To'] = f"{username} <{to_email}>"
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
@@ -3118,7 +3118,7 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = to_email
+    msg['To'] = f"{username} <{to_email}>"
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
 
@@ -3151,7 +3151,7 @@ def sendBanMail(session, userID, to_email, beatmapInfo):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = to_email
+    msg['To'] = f"{username} <{to_email}>"
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
 
@@ -3168,7 +3168,7 @@ def sendEmail(session, to_email, subject, msg):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = to_email
+    msg['To'] = f"{username} <{to_email}>"
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
 
