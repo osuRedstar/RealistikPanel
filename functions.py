@@ -275,7 +275,7 @@ def RecentPlays(TotalPlays = 20, MinPP = 0):
             plays.append(plays_rx)
     if UserConfig["HasAutopilot"]:
         #adding relax plays
-        mycursor.execute("SELECT scores_ap.beatmap_md5, users.username, scores_ap.userid, scores_ap.time, scores_ap.score, scores_ap.pp, scores_ap.play_mode, scores_ap.mods, scores_ap.300_count, scores_ap.100_count, scores_ap.50_count, scores_ap.misses_count FROM scores_ap LEFT JOIN users ON users.id = scores_ap.userid WHERE users.privileges & 1 AND scores_ap.pp >= %s ORDER BY scores_ap.id DESC LIMIT %s", (MinPP, PerGamemode,))
+        mycursor.execute("SELECT scores_autopilot.beatmap_md5, users.username, scores_autopilot.userid, scores_autopilot.time, scores_autopilot.score, scores_autopilot.pp, scores_autopilot.play_mode, scores_autopilot.mods, scores_autopilot.300_count, scores_autopilot.100_count, scores_autopilot.50_count, scores_autopilot.misses_count FROM scores_autopilot LEFT JOIN users ON users.id = scores_autopilot.userid WHERE users.privileges & 1 AND scores_autopilot.pp >= %s ORDER BY scores_autopilot.id DESC LIMIT %s", (MinPP, PerGamemode,))
         playx_ap = mycursor.fetchall()
         for plays_ap in playx_ap:
             #addint them to the list
@@ -307,7 +307,7 @@ def RecentPlays(TotalPlays = 20, MinPP = 0):
             UNION ALL
             SELECT * FROM scores_relax WHERE pp >= {MinPP}
             UNION ALL
-            SELECT * FROM scores_ap WHERE pp >= {MinPP}
+            SELECT * FROM scores_autopilot WHERE pp >= {MinPP}
         ) AS s
         LEFT JOIN users AS u ON u.id = s.userid
         LEFT JOIN (
@@ -1302,7 +1302,7 @@ def WipeAccount(AccId):
     if UserConfig["HasRelax"]:
         mycursor.execute("DELETE FROM scores_relax WHERE userid = %s", (AccId,))
     if UserConfig["HasAutopilot"]:
-        mycursor.execute("DELETE FROM scores_ap WHERE userid = %s", (AccId,))
+        mycursor.execute("DELETE FROM scores_autopilot WHERE userid = %s", (AccId,))
     WipeVanilla(AccId)
     if UserConfig["HasRelax"]:
         WipeRelax(AccId)
@@ -1452,7 +1452,7 @@ def WipeAutopilot(AccId):
         WHERE
             id = %s
     """, (AccId,))
-    mycursor.execute("DELETE FROM scores_ap WHERE userid = %s", (AccId,))
+    mycursor.execute("DELETE FROM scores_autopilot WHERE userid = %s", (AccId,))
     mycursor.execute("DELETE FROM ap_beatmap_playcount WHERE user_id = %s", (AccId,))
     mydb.commit()
 
@@ -1582,7 +1582,7 @@ def DeleteAccount(id : int):
         mycursor.execute("DELETE FROM scores_relax WHERE userid = %s", (id,))
         mycursor.execute("DELETE FROM rx_stats WHERE id = %s", (id,))
     if UserConfig["HasAutopilot"]:
-        mycursor.execute("DELETE FROM scores_ap WHERE userid = %s", (id,))
+        mycursor.execute("DELETE FROM scores_autopilot WHERE userid = %s", (id,))
         mycursor.execute("DELETE FROM ap_stats WHERE id = %s", (id,))
     mydb.commit()
 
@@ -2660,11 +2660,11 @@ def calc_first_place(beatmap_md5: str, rx: int = 0, mode: int = 0) -> None:
     table = {
         0: "scores",
         1: "scores_relax",
-        2: "scores_ap"
+        2: "scores_autopilot"
     }.get(rx)
 
     # WHY IS THE ROSU IMPLEMENTATION SO SCUFFED.
-    # FROM scores_ap LEFT JOIN users ON users.id = scores_ap.userid
+    # FROM scores_autopilot LEFT JOIN users ON users.id = scores_autopilot.userid
     mycursor.execute(
         "SELECT s.id, s.userid, s.score, s.max_combo, s.full_combo, s.mods, s.300_count,"
         "s.100_count, s.50_count, s.misses_count, s.time, s.play_mode, s.completed,"
