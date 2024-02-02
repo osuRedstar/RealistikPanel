@@ -355,6 +355,23 @@ def RX_leaderboard():
 """ give-betatag http """
 @app.route("/frontend/give-betatag/<id>")
 def give_betatag(id):
+    #ap_stats Table 추가
+    try:
+        mycursor.execute("SELECT * FROM rx_stats WHERE id = {}".format(id))
+        rx_stats = mycursor.fetchall()
+        mycursor.execute("INSERT INTO ap_stats VALUE {}".format(rx_stats[0]))
+        msg = "ap_stats Table Insert Success!!\n\n"
+    except:
+        try:
+            mycursor.execute("SELECT * FROM ap_stats WHERE id = {};".format(id))
+            ap_userinfo = mycursor.fetchall()
+            msg = "ap_stats Table already have\n\n"
+            if not ap_userinfo:
+                raise
+        except:
+            msg = "ap_stats Table Insert Fail!!\nPlease report This to Admin\n\n"
+
+    #betatag
     mycursor.execute("SELECT username FROM users WHERE id = {}".format(id))
     username = mycursor.fetchone()[0]
 
@@ -364,14 +381,14 @@ def give_betatag(id):
     try:
         mycursor.execute("SELECT id, user, badge FROM user_badges WHERE user = {} AND badge = {}".format(id, beta_badge_id))
         have_beta_badge = mycursor.fetchall()[0]
-        msg = f"Refused | {username} ({id}) already have Beta Tester ({beta_badge_id}) badge"
+        msg += f"Refused | {username} ({id}) already have Beta Tester ({beta_badge_id}) badge"
         log.warning(msg)
         return msg
     except:
         mycursor.execute("INSERT INTO user_badges (user, badge) VALUES (%s, %s)", (id, beta_badge_id,))
         mydb.commit()
     
-    msg = f"Success | {username} ({id}) given Beta Tester ({beta_badge_id})"
+    msg += f"Success | {username} ({id}) given Beta Tester ({beta_badge_id})"
     log.debug(msg)
     return msg
 
