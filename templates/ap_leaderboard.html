@@ -7,13 +7,14 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h4>Relax Leaderboard ({{ type }}) 아 국가별 리더보드까지는 귀찮음 ㅅㄱ</h4>
+        <h4>Autopilot Leaderboard ({{ type }}) 아 국가별 리더보드까지는 귀찮음 ㅅㄱ</h4>
     </div>
 
     <div style="margin-top: 16px;" class="col-12 col-md-6 col-lg-6">
         <button onclick="location.replace(`https://redstar.moe/leaderboard?mode=0&board=0`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Vanilla</a></button>
-        <button onclick="location.replace(`?mode=0&board=0`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Relax</a></button>
-        <button onclick="location.replace(`/frontend/leaderboard/ap`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Autopilot</a></button>
+        <button onclick="location.replace(`/frontend/leaderboard/rx`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Relax</a></button>
+        <button onclick="location.replace(`?mode=0&board=0`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Autopilot</a></button>
+    
     </div>
 
     <div class="card-body">
@@ -57,7 +58,7 @@
             }
             else if (param == 3) {
                 document.getElementById("mania").selected = true
-                alert("아 ㅋㅋ 매니아는 Relax 없다고 ㅋㅋ \n\nMania has NO Relax loooooooool")
+                alert("아 ㅋㅋ 매니아는 Autopilot 없다고 ㅋㅋ \n\nMania has NO Autopilot loooooooool")
             }
             else {
                 document.getElementById("std").selected = true

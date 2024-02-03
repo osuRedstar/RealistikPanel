@@ -20,6 +20,8 @@ ConsoleLog(f"RealistikPanel (Build {GetBuild()}) started!")
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #encrypts the session cookie
 
+ServerDomain = UserConfig["ServerURL"].replace("https://", "").replace("/", "")
+
 @app.route("/")
 def home():
     redirect_url = request.args.get("redirect_url")
@@ -99,7 +101,7 @@ def OnlineUserList():
     log.debug("onlinelist query = {}".format(query))
     if query is None:
         log.debug("리다이렉트 댐")
-        return redirect(f"https://admin.redstar.moe/onlineusers_list?q=id")
+        return redirect(f"https://admin.{ServerDomain}/onlineusers_list?q=id")
     #sql 인젝션 방지 (?)
     elif query != "id" and query != "username" and query != "current_status":
         log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
@@ -129,7 +131,7 @@ def RestrictedUserList(dash=False):
         log.debug("restrictedlist query = {}".format(query))
         if query is None:
             log.debug("리다이렉트 댐")
-            return redirect(f"https://admin.redstar.moe/restrictedusers_list?q=id")
+            return redirect(f"https://admin.{ServerDomain}/restrictedusers_list?q=id")
         #sql 인젝션 방지 (?)
         elif query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
             log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
@@ -163,7 +165,7 @@ def BannedUserList(dash=False):
         log.debug("bannedlist query = {}".format(query))
         if query is None:
             log.debug("리다이렉트 댐")
-            return redirect(f"https://admin.redstar.moe/bannedusers_list?q=id")
+            return redirect(f"https://admin.{ServerDomain}/bannedusers_list?q=id")
         #sql 인젝션 방지 (?)
         elif query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
             log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
@@ -195,9 +197,9 @@ def status():
     log.debug("status query = {}".format(query))
     if query == "1":
         try:
-            MediaServer = requests.get("https://b.redstar.moe/status", timeout=1).json()
+            MediaServer = requests.get(f"https://b.{ServerDomain}/status", timeout=1).json()
         except Exception as err:
-            print("[ERROR] https://b.redstar.moe/status: ", err)
+            print(f"[ERROR] https://b.{ServerDomain}/status: ", err)
             MediaServer = {"code" : 503, "oszCount" : -1}
         return Response(json.dumps({"Bancho": BanchoStatus().json, "LETS": LetsStatus().json, "API": ApiStatus().json, "MediaServer": MediaServer}, indent=2, ensure_ascii=False), content_type='application/json')
     return render_template("dash.html", title="Dashboard", session=session, data=DashData(), restricteduserlist=json.loads(RestrictedUserList(dash=True))[0], banneduserlist=json.loads(BannedUserList(dash=True))[0], plays=RecentPlays(), config=UserConfig, Graph=DashActData(), MostPlayed=GetMostPlayed())
@@ -208,7 +210,7 @@ def login():
     if redirect_url is None:
         redirect_url = url_for("home")
     else:
-        redirect_url = f"https://admin.redstar.moe/?redirect_url={redirect_url}"
+        redirect_url = f"https://admin.{ServerDomain}/?redirect_url={redirect_url}"
 
     if not session["LoggedIn"] and not HasPrivilege(session["AccountId"]):
         if request.method == "GET":
@@ -311,9 +313,9 @@ def RX_leaderboard():
     query = request.args.get("mode")
     query2 = request.args.get("board")
     if query is None:
-        return redirect(f"https://admin.redstar.moe/frontend/leaderboard/rx?mode=0&board=0")
+        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/rx?mode=0&board=0")
     elif query2 is None:
-         return redirect(f"https://admin.redstar.moe/frontend/leaderboard/rx?mode=0&board=0")
+         return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/rx?mode=0&board=0")
     elif int(query) > 3:
         return "WHAT IS THAT MODE?"
 
@@ -351,6 +353,54 @@ def RX_leaderboard():
             i += 1
     
     return render_template("rx_leaderboard.html", data=DashData(), session=session, title="Relax Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by pp_{mode}")
+
+""" AP 리더보드 """
+@app.route("/frontend/leaderboard/ap")
+#아 국가별 리더보드 만들기 존나 귀찮다
+def AP_leaderboard():
+    query = request.args.get("mode")
+    query2 = request.args.get("board")
+    if query is None:
+        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/ap?mode=0&board=0")
+    elif query2 is None:
+         return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/ap?mode=0&board=0")
+    elif int(query) > 3:
+        return "WHAT IS THAT MODE?"
+
+    mode = ["std", "taiko", "ctb", "mania"]
+    mode = mode[int(query)]
+
+    if int(query2) == 0:
+        mycursor.execute(f"SELECT ap_stats.country, ap_stats.id, ap_stats.username, ap_stats.pp_{mode}, ap_stats.ranked_score_{mode}, ap_stats.avg_accuracy_{mode}, ap_stats.playcount_{mode}, ap_stats.level_{mode} FROM ap_stats LEFT JOIN users ON users.id = ap_stats.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) ORDER BY case when pp_{mode} then pp_{mode} END DESC, case when pp_{mode} = 0 then ranked_score_{mode} END DESC")
+        log.info("ap 리더보드 pp 정렬")
+    elif int(query2) == 1:
+        mycursor.execute(f"SELECT ap_stats.country, ap_stats.id, ap_stats.username, ap_stats.pp_{mode}, ap_stats.ranked_score_{mode}, ap_stats.avg_accuracy_{mode}, ap_stats.playcount_{mode}, ap_stats.level_{mode} FROM ap_stats LEFT JOIN users ON users.id = ap_stats.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) ORDER BY case when ranked_score_{mode} then ranked_score_{mode} END DESC, case when ranked_score_{mode} = 0 then pp_{mode} END DESC")
+        log.info("ap 리더보드 score 정렬")
+    ap_lb = mycursor.fetchall()
+
+    ReadableArray = []
+    if len(ap_lb) is not 0:
+        i = 1
+        for x in ap_lb:
+            Dicti = {}
+            Dicti["Rank"] = i
+
+            Dicti["Country"] = x[0]
+            Dicti["PlayerId"] = x[1]
+            Dicti["Player"] = x[2]
+
+            Dicti["pp"] = f"{round(x[3], 2):,}"
+            Dicti["Score"] = f'{x[4]:,}'
+
+            Dicti["Accuracy"] = f"{round(x[5], 2):,}"
+
+            Dicti["Playcount"] = f"{x[6]:,}"
+            Dicti["Level"] = f"{x[7]}"
+
+            ReadableArray.append(Dicti)
+            i += 1
+    
+    return render_template("ap_leaderboard.html", data=DashData(), session=session, title="Autopilot Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by pp_{mode}")
 
 """ give-betatag http """
 @app.route("/frontend/give-betatag/<id>")
@@ -524,7 +574,7 @@ def frontend_rankRequest_setQualified(type, bid):
             for i in r:
                 bid = i["beatmap_id"]
                 param = {'b': bid}
-                requests.get('https://old.redstar.moe/letsapi/v1/pp', params=param)
+                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', params=param)
                 log.info("{} 비트맵 DB에 저장중".format(bid))
 
         elif type == "s":
@@ -539,7 +589,7 @@ def frontend_rankRequest_setQualified(type, bid):
             for i in r:
                 bid = i["beatmap_id"]
                 param = {'b': bid}
-                requests.get('https://old.redstar.moe/letsapi/v1/pp', params=param)
+                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', params=param)
                 log.info("{} 비트맵 DB에 저장중".format(bid))
     except:
         log.error("ERROR: 반초 요청 + Redstar DB등록 작업 실패")
@@ -611,17 +661,17 @@ def frontend_rankRequest_setQualified(type, bid):
         URL = "https://discord.com/api/webhooks/1076661302979739678/5e7n8ZJSjPHlzFVjvVdu4Fi2LuxgKVz6mYtVwlasGjYHuelOLVLhSredSxim6246vADH"
         webhook = DiscordWebhook(url=URL)
         embed = DiscordEmbed(description=f"Status Changed by Devlant. <@&904084069413965944>\nRequested by {requestby_username} ({requestby_id})", color=242424) #this is giving me discord.py vibes
-        embed.set_author(name=f"{BmapName} was just Qualified. (Beatmap_Set)", url=f"https://admin.redstar.moe/rank/{MapData[1]}", icon_url=f"https://a.redstar.moe/999") #will rank to random diff but yea
+        embed.set_author(name=f"{BmapName} was just Qualified. (Beatmap_Set)", url=f"https://admin.{ServerDomain}/rank/{MapData[1]}", icon_url=f"https://a.{ServerDomain}/999") #will rank to random diff but yea
         #embed.set_author(name=f"{mapa[0]} was just Qualified (Beatmap_Set)", url=f"{UserConfig['ServerURL']}b/{bid}", icon_url=f"{UserConfig['AvatarServer']}{999}")
         embed.set_footer(text="via RealistikPanel! With Frontend")
         #embed.set_image(url=f"https://subapi.nerinyan.moe/bg/-{BeatmapSet}")
-        embed.set_image(url=f"https://b.redstar.moe/bg/{first_bid}")
+        embed.set_image(url=f"https://b.{ServerDomain}/bg/{first_bid}")
         webhook.add_embed(embed)
         print(" * Posting webhook!")
         webhook.execute()
 
 
-        ingamemsg = f"[{UserConfig['ServerURL']}u/999 Devlant] Qualified the map_set [https://osu.redstar.moe/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
+        ingamemsg = f"[{UserConfig['ServerURL']}u/999 Devlant] Qualified the map_set [https://osu.{ServerDomain}/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
         params = {"k": UserConfig['FokaKey'], "to": "#ranked", "msg": ingamemsg}
         FokaMessage(params)
         log.chat("1차 인게임 공지 전송 완료")
@@ -664,7 +714,7 @@ def SearchBeatmap(song_query, rank_select = False):
 
     for TopBeatmap in Beatmaps:
 
-        r = requests.get(f'https://cheesegull.redstar.moe/api/s/{TopBeatmap[2]}')
+        r = requests.get(f'https://cheesegull.{ServerDomain}/api/s/{TopBeatmap[2]}')
         log.info("/rank/search 쿼리 cheesegull 비트맵셋 = {} 조회 (맵 제작자 가져오는 코드)".format(TopBeatmap[2]))
         r = r.json()
 
@@ -677,7 +727,7 @@ def SearchBeatmap(song_query, rank_select = False):
             "BeatmapId" : TopBeatmap[0],
             "BeatmapSetId" : TopBeatmap[2],
             "SongName" : TopBeatmap[1],
-            "Cover" : f"https://b.redstar.moe/bg/{TopBeatmap[0]}",
+            "Cover" : f"https://b.{ServerDomain}/bg/{TopBeatmap[0]}",
             #"Cover" : f"https://assets.ppy.sh/beatmaps/{TopBeatmap[2]}/covers/cover.jpg",
             "Creator" : Creator,
             "Rankedby" : TopBeatmap[3],
@@ -715,7 +765,7 @@ def pw_reset(id):
                 <html>
                 <head>
                     <title>Password Changed!</title>
-                    <meta http-equiv="refresh" content="3;url=https://admin.redstar.moe/frontend/pwreset/{id}">
+                    <meta http-equiv="refresh" content="3;url=https://admin.{ServerDomain}/frontend/pwreset/{id}">
                 </head>
                 <body>
                     <h1 style="text-align: center;">Key Exfired! Redirect pwreset page after 3sec</h1>
@@ -750,12 +800,12 @@ def pw_reset(id):
             mycursor.execute(f"DELETE FROM password_recovery WHERE u = '{username}' AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1")
             mydb.commit()
 
-            html = """
+            html = f"""
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <title>Password Changed!</title>
-                    <meta http-equiv="refresh" content="3;url=https://redstar.moe/login">
+                    <meta http-equiv="refresh" content="3;url=https://{ServerDomain}/login">
                 </head>
                 <body>
                     <h1 style="text-align: center;">password changed!! Redirect login page after 3sec</h1>
@@ -781,7 +831,7 @@ def pw_reset(id):
                 <html>
                 <head>
                     <title>Password Changed!</title>
-                    <meta http-equiv="refresh" content="3;url=https://admin.redstar.moe/frontend/pwreset/{id}">
+                    <meta http-equiv="refresh" content="3;url=https://admin.{ServerDomain}/frontend/pwreset/{id}">
                 </head>
                 <body>
                     <h1 style="text-align: center;">Key Exfired! Redirect pwreset page after 3sec</h1>
@@ -1199,20 +1249,25 @@ def ClanDeleteConfirm(ClanID):
 
 
 #릴렉 유저별 최근 기록 조회
-def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
+def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
+    if rx:
+        RXorAP = ["rx", "relax"]
+    elif ap:
+        RXorAP = ["ap", "ap"]
+
     try:
         """Returns recent plays."""
         #this is probably really bad
 
         log.info("RecentPlay_user 함수 요청됨")
         if gamemode == 0:
-            log.info("rx유페 STD 검사")
+            log.info(f"{RXorAP[0].upper()}유페 STD 검사")
         elif gamemode == 1:
-            log.info("rx유페 Taiko 검사")
+            log.info(f"{RXorAP[0].upper()}유페 Taiko 검사")
         elif gamemode == 2:
-            log.info("rx유페 CTB 검사")
+            log.info(f"{RXorAP[0].upper()}유페 CTB 검사")
         elif gamemode == 3:
-            log.info("rx유페 Mania 검사")
+            log.info(f"{RXorAP[0].upper()}유페 Mania 검사")
         else:
             log.error("gamemode = {}".format(gamemode))
 
@@ -1222,7 +1277,7 @@ def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
             order_by = "s.pp"
 
         #rx
-        #mycursor.execute(f"SELECT scores_relax.beatmap_md5, users.username, scores_relax.userid, scores_relax.time, scores_relax.score, scores_relax.pp, scores_relax.play_mode, scores_relax.mods, scores_relax.300_count, scores_relax.100_count, scores_relax.50_count, scores_relax.misses_count, scores_relax.id, scores_relax.completed FROM scores_relax LEFT JOIN users ON users.id = scores_relax.userid WHERE scores_relax.completed != 0 and scores_relax.userid = {uid} AND scores_relax.pp >= {minpp} and scores_relax.play_mode = {gamemode} ORDER BY {order_by} DESC limit 100")
+        #mycursor.execute(f"SELECT scores_{RXorAP[1]}.beatmap_md5, users.username, scores_{RXorAP[1]}.userid, scores_{RXorAP[1]}.time, scores_{RXorAP[1]}.score, scores_{RXorAP[1]}.pp, scores_{RXorAP[1]}.play_mode, scores_{RXorAP[1]}.mods, scores_{RXorAP[1]}.300_count, scores_{RXorAP[1]}.100_count, scores_{RXorAP[1]}.50_count, scores_{RXorAP[1]}.misses_count, scores_{RXorAP[1]}.id, scores_{RXorAP[1]}.completed FROM scores_{RXorAP[1]} LEFT JOIN users ON users.id = scores_{RXorAP[1]}.userid WHERE scores_{RXorAP[1]}.completed != 0 and scores_{RXorAP[1]}.userid = {uid} AND scores_{RXorAP[1]}.pp >= {minpp} and scores_{RXorAP[1]}.play_mode = {gamemode} ORDER BY {order_by} DESC limit 100")
         
         SQL = f"""
             SELECT 
@@ -1245,7 +1300,7 @@ def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
                 b.beatmapset_id,
                 b.ranked
             FROM (
-                SELECT * FROM scores_relax WHERE pp >= {minpp}
+                SELECT * FROM scores_{RXorAP[1]} WHERE pp >= {minpp}
             ) AS s
             LEFT JOIN users AS u ON u.id = s.userid
             LEFT JOIN (
@@ -1296,7 +1351,7 @@ def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
                 Dicti["scoreID"] = x[12]
                 Dicti["completed"] = x[13]
                 
-                mycursor.execute("SELECT COUNT(*) FROM scores_relax WHERE userid = %s AND scores_relax.pp >= %s and scores_relax.play_mode = %s ORDER BY id DESC", (uid, minpp, gamemode))
+                mycursor.execute(f"SELECT COUNT(*) FROM scores_{RXorAP[1]} WHERE userid = %s AND scores_{RXorAP[1]}.pp >= %s and scores_{RXorAP[1]}.play_mode = %s ORDER BY id DESC", (uid, minpp, gamemode))
                 Dicti["submit_count"] = f"{mycursor.fetchone()[0]:,}"
 
                 try:
@@ -1330,35 +1385,35 @@ def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
 
                 #유페 totalPP, ranked_score추가
                 if gamemode == 0:
-                    mycursor.execute("SELECT pp_std, avg_accuracy_std, ranked_score_std FROM rx_stats WHERE id = %s", (uid,))
+                    mycursor.execute(f"SELECT pp_std, avg_accuracy_std, ranked_score_std FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
                     result = mycursor.fetchall()[0]
                     totalPP = result[0]
                     accuracy = result[1]
                     ranked_score = result[2]
                     Dicti["gameMode"] = " [STD]"
                 elif gamemode == 1:
-                    mycursor.execute("SELECT pp_taiko, avg_accuracy_taiko, ranked_score_taiko FROM rx_stats WHERE id = %s", (uid,))
+                    mycursor.execute(f"SELECT pp_taiko, avg_accuracy_taiko, ranked_score_taiko FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
                     result = mycursor.fetchall()[0]
                     totalPP = result[0]
                     accuracy = result[1]
                     ranked_score = result[2]
                     Dicti["gameMode"] = " [Taiko]"
                 elif gamemode == 2:
-                    mycursor.execute("SELECT pp_ctb, avg_accuracy_ctb, ranked_score_ctb FROM rx_stats WHERE id = %s", (uid,))
+                    mycursor.execute(f"SELECT pp_ctb, avg_accuracy_ctb, ranked_score_ctb FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
                     result = mycursor.fetchall()[0]
                     totalPP = result[0]
                     accuracy = result[1]
                     ranked_score = result[2]
                     Dicti["gameMode"] = " [CTB]"
                 elif gamemode == 3:
-                    mycursor.execute("SELECT pp_mania, avg_accuracy_mania, ranked_score_mania FROM rx_stats WHERE id = %s", (uid,))
+                    mycursor.execute(f"SELECT pp_mania, avg_accuracy_mania, ranked_score_mania FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
                     result = mycursor.fetchall()[0]
                     totalPP = result[0]
                     accuracy = result[1]
                     ranked_score = result[2]
                     Dicti["gameMode"] = " [Mania]"
                 else:
-                    mycursor.execute("SELECT pp_std, avg_accuracy_std, ranked_score_std FROM rx_stats WHERE id = %s", (uid,))
+                    mycursor.execute(f"SELECT pp_std, avg_accuracy_std, ranked_score_std FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
                     result = mycursor.fetchall()[0]
                     totalPP = result[0]
                     accuracy = result[1]
@@ -1374,14 +1429,14 @@ def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
             return ReadableArray
         else:
             def NODATA(uid):
-                log.error("{} 해당 유저의 rx데이터가 존재하지 않음".format(uid))
+                log.error("{} 해당 유저의 {}데이터가 존재하지 않음".format(uid, RXorAP[0].upper()))
 
                 mycursor.execute("SELECT username FROM users WHERE id = %s", (uid,))
                 uname = mycursor.fetchone()[0]
                 ReadableArray = []
                 Dicti = {}
                 Dicti["Nodata"] = 0
-                Dicti["SongName"] = "No Relax Data on {}".format(uid)
+                Dicti["SongName"] = "No {} Data on {}".format(RXorAP[1], uid)
                 Dicti["Player"] = uname
                 Dicti["PlayerId"] = uid
                 Dicti["Score"] = None
@@ -1404,27 +1459,42 @@ def RecentPlays_user_rx(text, uid, gamemode = 0, minpp = 0):
             
             return NODATA(uid)
     except:
-        log.error("rx유페 예외처리됨")
+        log.error(f"{RXorAP[0].upper()}유페 예외처리됨")
         
         return NODATA(uid)
-        return "No Relax Data on {}".format(uid)
+        return "No {} Data on {}".format(RXorAP[1], uid)
 
 @app.route("/u/rx/<uid>", methods = ["GET", "POST"])
 def u_rx_bestPP(uid):
     gamemode = request.args.get("mode")
     if gamemode is None:
-        return redirect(f"https://admin.redstar.moe/u/rx/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/rx/{uid}?mode=0")
     MinPP = request.form.get("minpp", 0)
-    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user_rx("ORDER_pp", uid, int(gamemode), MinPP), MinPP = MinPP, type = "ORDER by pp")
+    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_pp", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by pp")
 
 @app.route("/u/rx/recent/<uid>", methods = ["GET", "POST"])
 def u_rx_recent(uid):
     gamemode = request.args.get("mode")
     if gamemode is None:
-        return redirect(f"https://admin.redstar.moe/u/rx/recent/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/rx/recent/{uid}?mode=0")
     MinPP = request.form.get("minpp", 0)
-    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user_rx("ORDER_Recent", uid, int(gamemode), MinPP), MinPP = MinPP, type = "ORDER by time")
+    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_Recent", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by time")
 
+@app.route("/u/ap/<uid>", methods = ["GET", "POST"])
+def u_ap_bestPP(uid):
+    gamemode = request.args.get("mode")
+    if gamemode is None:
+        return redirect(f"https://admin.{ServerDomain}/u/ap/{uid}?mode=0")
+    MinPP = request.form.get("minpp", 0)
+    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_pp", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by pp")
+
+@app.route("/u/ap/recent/<uid>", methods = ["GET", "POST"])
+def u_ap_recent(uid):
+    gamemode = request.args.get("mode")
+    if gamemode is None:
+        return redirect(f"https://admin.{ServerDomain}/u/ap/recent/{uid}?mode=0")
+    MinPP = request.form.get("minpp", 0)
+    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_Recent", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by time")
 
 @app.route("/stats", methods = ["GET", "POST"])
 def StatsRoute():

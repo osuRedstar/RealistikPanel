@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+{% endblock %}
+
+{% block content %}
+
+<script>
+    const title = document.querySelector("title")
+    title.innerText = title.innerText.replace("Autopilot", "{{ StatData[0]['Player'] }}'s Autopilot")
+</script>
+
+<div class="card">
+    <div class="card-header">
+        <h4>{{ StatData[0]["Player"] }}'s Autopilot Recent Plays ({{ type }})</h4>
+    </div>
+    <div class="card-body">
+        <h3>Filters</h3>
+        Choose the minimum PP value that plays are required to have to appear on the list. The current value is <b>{{ MinPP }}</b>.
+        <form action="" method="post">
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <input type="number" class="form-control" name="minpp" min="0" value="{{ MinPP }}" style="margin-top: 5px; margin-bottom: 10px;">
+                </div>
+                <div class="col-12 col-md-6 col-lg-6">
+                    <button class="btn btn-success" type="submit" name="" style="margin-top: 8px;">Filter</button>
+                </div>
+            </div>
+        </form>
+
+        <br>
+        <form style="text-align: center;">
+            <select style="width: 200px; text-align: center;" class="form-control" id="mode_box" name="language" onchange="chageLangSelect()">
+                <option value="0" selected>=== Select Mode ===</option>
+                <option id="std" value="0">osu! standard</option>
+                <option id="taiko" value="1">Taiko</option>
+                <option id="ctb" value="2">Catch the Beat</option>
+                <option id="mania" value="3">osu!mania</option>
+            </select>
+        </form>
+        <br>
+        <script>
+            //모드 변경
+            const param = new URLSearchParams(location.search).get("mode");
+            if (param == 0) {
+                document.getElementById("std").selected = true
+            }
+            else if (param == 1) {
+                document.getElementById("taiko").selected = true
+            }
+            else if (param == 2) {
+                document.getElementById("ctb").selected = true
+            }
+            else if (param == 3) {
+                document.getElementById("mania").selected = true
+                alert("아 ㅋㅋ 매니아는 Autopilot 없다고 ㅋㅋ \n\nMania has NO Autopilot loooooooool")
+            }
+            else {
+                document.getElementById("std").selected = true
+            }
+
+            function chageLangSelect(){
+                var langSelect = document.getElementById("mode_box");
+                
+                // select element에서 선택된 option의 value가 저장된다.
+                var selectValue = langSelect.options[langSelect.selectedIndex].value;
+                location.replace(`?mode=${selectValue}`);
+                
+            }
+        </script>
+
+        <div style="text-align: center;">
+            <h1>
+                Total PP = 
+                <a id="totalPP" style="color: #6777ef;">
+                    {{ StatData[0]["totalPP"] }}
+                </a>
+            </h1>
+            <h1>
+                Accuracy = 
+                <a id="accuracy" style="color: #6777ef;">
+                    {{ StatData[0]["accuracy"] }}%
+                </a>
+            </h1>
+            <h1>
+                ranked_score = 
+                <a id="ranked_score" style="color: #6777ef;">
+                    {{ StatData[0]["ranked_score"] }}
+                </a>
+            </h1>
+            <h1>
+                Total Submit count {{ StatData[0]["gameMode"] }} = 
+                <a id="total_submit_count" style="color: #6777ef;">
+                    {{ StatData[0]["submit_count"] }}
+                </a>
+            </h1>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Player</th>
+
+                    <th scope="col">Replay</th>
+                    <th scope="col">ranked_status</th>
+
+                    <th scope="col">Song</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">PP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for play in StatData %}
+
+                <!-- Nodata on DB -->
+                {% if play["Nodata"] != 0 %}
+                    <script>
+                        alert("/stats \n\n최근플레이 함수실행중 {{ play['Nodata'] }}개의 비트맵이 DB에 존재하지 않습니다. \n\nDuring the execution of the RecentPlays function, {{ play['Nodata'] }}beatmap does not exist in the DB.")
+                    </script>
+                {% endif %}
+                <!-- 누락곡 목록 -->
+                {% if play["Nodata_SongName"] == "Invalid..." %}
+                    <script>
+                        console.log("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+                        alert("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+                    </script>
+                {% endif %}
+
+                <tr>
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                {{ play["Time"] }}
+                            </del>
+                        {% else %}
+                            {{ play["Time"] }}
+                        {% endif %}
+                        
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <a href="{{ config['ServerURL'] }}u/{{ play['PlayerId'] }}" target="_blank">
+                                    {{ play["Player"] }}
+                                </a>
+                            </del>
+                        {% else %}
+                            <a href="{{ config['ServerURL'] }}u/{{ play['PlayerId'] }}" target="_blank">
+                                {{ play["Player"] }}
+                            </a>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_ap/{{ play['scoreID'] }}">
+                                    Download
+                                </a>
+                            </del>
+                        {% else %}
+                            <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_ap/{{ play['scoreID'] }}">
+                                Download
+                            </a>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <span class="ranked_status" style="color: red;">
+                                    [{{ play["ranked"][0] }}]
+                                </span>
+                            </del>
+                        {% else %}
+                            <span class="ranked_status" style="color: red;">
+                                [{{ play["ranked"][0] }}]
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                <a style="color: #dadada;" target="_blank" href="{{ config['ServerURL'] }}b/{{ play['beatmapID'] }}" class="">
+                                    {{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i>
+                                </a>
+                                <span style="color: pink;">
+                                    {{ play["gameMode"] }}
+                                </span>
+                            </del>
+                        {% else %}
+                            <a style="color: #dadada;" target="_blank" href="{{ config['ServerURL'] }}b/{{ play['beatmapID'] }}" class="">
+                                {{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i>
+                            </a>
+                            <span style="color: pink;">
+                                {{ play["gameMode"] }}
+                            </span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                {{ play["Score"] }}
+                            </del>
+                        {% else %}
+                            {{ play["Score"] }}
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        <!-- html 취소선 긋기 -->
+                        {% if play["completed"] != 3 %}
+                            <del style="color: red;">
+                                {{ play["pp"] }}
+                            </del>
+                        {% else %}
+                            {{ play["pp"] }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <!-- line 118 -->
+            <script>
+                rs = document.getElementsByClassName("ranked_status")
+                for (let i = 0; i < rs.length; i++) {
+                    if (rs[i].innerText == "[Ranked]") {
+                        rs[i].style.color = "#6777ef"
+                    }
+                    if (rs[i].innerText == "[Loved]") {
+                        rs[i].style.color = "#AA336A"
+                    }
+                    if (rs[i].innerText == "[Approved]") {
+                        rs[i].style.color = "green"
+                    }
+                    if (rs[i].innerText == "[Qualified]") {
+                        rs[i].style.color = "green"
+                    }
+                    if (rs[i].innerText == "[Unranked]") {
+                        rs[i].style.color = "red"
+                    }
+                }
+            </script>
+
+        </table>
+    </div>
+    <div class="card-footer">
+        RealistikPanel
+    </div>
+</div>
+{% endblock %}
