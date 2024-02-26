@@ -11,6 +11,9 @@
         <form action="/sendemail" method="post">
             <div class="form-group">
                 Choose according to the format!<br>
+                <label>Nickname</label>
+                <input type="text" class="form-control" placeholder="ex) Devlant (의무 아님, Not required)" name="nickname">
+                
                 <label>email</label>
                 <input type="email" class="form-control" name="email" required>
 
@@ -19,6 +22,13 @@
 
                 <label>Message</label>
                 <input type="text" class="form-control" name="msg" required>
+
+                <label>MailType</label>
+                <select style="width: 200px; text-align: center;" class="form-control" id="mailType" name="mailType">
+                    <option value="0" selected>=== Select Type ===</option>
+                    <option id="std" value="0">html</option>
+                    <option id="taiko" value="1">text</option>
+                </select>
             </div>
             <button class="btn btn-primary mr-1" type="submit" name="">Send</button>
         </form>

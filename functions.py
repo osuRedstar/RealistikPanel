@@ -3157,7 +3157,8 @@ def sendBanMail(session, userID, to_email, beatmapInfo):
 
     return mailSend(session, sender_email, sender_password, to_email, msg, type="Ban")
 
-def sendEmail(session, to_email, subject, msg):
+def sendEmail(session, to_email, subject, msg, MIMEType):
+
     # 보내는 사람 이메일 계정 정보
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
@@ -3168,8 +3169,8 @@ def sendEmail(session, to_email, subject, msg):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = f"{username} <{to_email}>"
+    msg['To'] = to_email
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'html'))
+    msg.attach(MIMEText(body, MIMEType))
 
     return mailSend(session, sender_email, sender_password, to_email, msg, type="")

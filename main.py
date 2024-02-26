@@ -948,10 +948,12 @@ def send_mail():
             return NoPerm(session, redirect_url)
     else:
         if HasPrivilege(session["AccountId"]):
-            email = request.form["email"]
+            email = request.form["email"] if request.form["nickname"] == "" else f'{request.form["nickname"]} <{request.form["email"]}>'
             subject = request.form["subject"]
             msg = request.form["msg"]
-            sendEmail(session, email, subject, msg)
+            MIMEType = "html" if request.form['mailType'] == "0" else "plain"
+
+            sendEmail(session, email, subject, msg, MIMEType)
             return render_template("sendemail.html", title="Send Email", data=DashData(), session=session, config=UserConfig, success=f"Successfully Send Email! to {email}")
         else:
             redirect_url = request.url.replace("http", "https")
