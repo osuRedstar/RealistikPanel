@@ -442,42 +442,49 @@ def give_betatag(id):
     log.debug(msg)
     return msg
 
-""" rankedby http """
-@app.route("/frontend/rankedby/<id>")
-def ranked_by(id):
-    mycursor.execute("SELECT rankedby FROM beatmaps WHERE beatmap_id = {}".format(id))
-    try:
-        rankedby = mycursor.fetchone()[0]
-    except:
-        log.error(f"{id} rankedby 조회 실패!")
-        rankedby = ""
-    return rankedby
-
-""" ranked_status http """
+""" ranked_status http + rankedby"""
 @app.route("/frontend/ranked_status/<id>")
 def ranked_status(id):
-    mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = {}".format(id))
+    mycursor.execute("SELECT ranked, rankedby FROM beatmaps WHERE beatmap_id = {}".format(id))
     try:
-        ranked = mycursor.fetchone()[0]
-    except:
-        log.error(f"{id} ranked_status 조회 실패!")
-        return '["", ""]'
+        result = mycursor.fetchone()
+        redstar_ranked = result[0]
+        rankedby = result[1]
+        if redstar_ranked == 2:
+            redstar_ranked = [rankedby, "Ranked", 2]
+        elif redstar_ranked == 5:
+            redstar_ranked = [rankedby, "Loved", 5]
+        elif redstar_ranked == 3:
+            redstar_ranked = [rankedby, "Approved", 3]
+        elif redstar_ranked == 4:
+            redstar_ranked = [rankedby, "Qualified", 4]
+        elif redstar_ranked == 0:
+            redstar_ranked = [rankedby, "Unranked", 0]
+    except Exception as e:
+        log.error(f"{id} redstar_ranked_status 조회 실패! | {e}")
+        return {"redstar": None, "bancho": None}
 
-    if ranked == 2:
-        return f'["Ranked", 2]'
-        #return "Ranked"
-    elif ranked == 5:
-        return f'["Loved", 5]'
-        #return "Loved"
-    elif ranked == 3:
-        return f'["Approved", 3]'
-        #return "Approved"
-    elif ranked == 4:
-        return f'["Qualified", 4]'
-        #return "Qualified"
-    elif ranked == 0:
-        return f'["Unranked", 0]'
-        #return "Unranked"
+    try:
+        bancho_ranked = int(requests.get(f'https://osu.ppy.sh/api/get_beatmaps?k={UserConfig["APIKey"]}&b={id}').json()[0]["approved"])
+        if bancho_ranked == 1:
+            bancho_ranked = ["Ranked", 1]
+        elif bancho_ranked == 4:
+            bancho_ranked = ["Loved", 4]
+        elif bancho_ranked == 2:
+            bancho_ranked = ["Approved", 2]
+        elif bancho_ranked == 3:
+            bancho_ranked = ["Qualified", 3]
+        elif bancho_ranked == 0:
+            bancho_ranked = ["Pending (Unranked)", 0]
+        elif bancho_ranked == -1:
+            bancho_ranked = ["WIP (Unranked)", -1]
+        elif bancho_ranked == -2:
+            bancho_ranked = ["Graveyard (Unranked)", -2]
+    except:
+        log.error(f"{id} bancho_ranked_status 조회 실패!")
+        return {"redstar": redstar_ranked, "bancho": None}
+
+    return {"redstar": redstar_ranked, "bancho": bancho_ranked}
 
 #/rank/<id> 요청시 id가 bid, bsid 둘다 DB에 존재할경우 선택 페이지
 @app.route("/rank/select/<id>")
