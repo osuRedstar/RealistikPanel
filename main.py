@@ -462,7 +462,7 @@ def ranked_status(id):
             redstar_ranked = [rankedby, "Unranked", 0]
     except Exception as e:
         log.error(f"{id} redstar_ranked_status 조회 실패! | {e}")
-        return {"redstar": None, "bancho": None}
+        redstar_ranked = None
 
     try:
         bancho_ranked = int(requests.get(f'https://osu.ppy.sh/api/get_beatmaps?k={UserConfig["APIKey"]}&b={id}').json()[0]["approved"])
@@ -482,7 +482,7 @@ def ranked_status(id):
             bancho_ranked = ["Graveyard (Unranked)", -2]
     except:
         log.error(f"{id} bancho_ranked_status 조회 실패!")
-        return {"redstar": redstar_ranked, "bancho": None}
+        bancho_ranked = None
 
     return {"redstar": redstar_ranked, "bancho": bancho_ranked}
 
