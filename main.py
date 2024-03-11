@@ -306,34 +306,67 @@ def BanchoSettings():
         redirect_url = request.url.replace("http", "https")
         return NoPerm(session, redirect_url)
 
-""" RX 리더보드 """
-@app.route("/frontend/leaderboard/rx")
+""" 통합 리더보드 """
+@app.route("/frontend/leaderboard")
 #아 국가별 리더보드 만들기 존나 귀찮다
-def RX_leaderboard():
-    query = request.args.get("mode")
-    query2 = request.args.get("board")
-    if query is None:
-        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/rx?mode=0&board=0")
-    elif query2 is None:
-         return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/rx?mode=0&board=0")
-    elif int(query) > 3:
+def leaderboard():
+    rx = request.args.get("rx")
+    mode = request.args.get("mode")
+    board = request.args.get("board")
+    if rx is None:
+        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard?rx=0&mode=0&board=0")
+    elif mode is None:
+        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard?rx={rx}&mode=0&board=0")
+    elif board is None:
+        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard?rx={rx}&mode={mode}&board=0")
+    elif int(mode) > 3:
         return "WHAT IS THAT MODE?"
 
-    mode = ["std", "taiko", "ctb", "mania"]
-    mode = mode[int(query)]
+    if int(mode) == 0:
+        mode = "std"
+    elif int(mode) == 1:
+        mode = "taiko"
+    elif int(mode) == 2:
+        mode = "ctb"
+    elif int(mode) == 3:
+        mode = "mania"
+    else:
+        mode = "std"
 
-    if int(query2) == 0:
-        mycursor.execute(f"SELECT rx_stats.country, rx_stats.id, rx_stats.username, rx_stats.pp_{mode}, rx_stats.ranked_score_{mode}, rx_stats.avg_accuracy_{mode}, rx_stats.playcount_{mode}, rx_stats.level_{mode} FROM rx_stats LEFT JOIN users ON users.id = rx_stats.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) ORDER BY case when pp_{mode} then pp_{mode} END DESC, case when pp_{mode} = 0 then ranked_score_{mode} END DESC")
-        log.info("rx 리더보드 pp 정렬")
-    elif int(query2) == 1:
-        mycursor.execute(f"SELECT rx_stats.country, rx_stats.id, rx_stats.username, rx_stats.pp_{mode}, rx_stats.ranked_score_{mode}, rx_stats.avg_accuracy_{mode}, rx_stats.playcount_{mode}, rx_stats.level_{mode} FROM rx_stats LEFT JOIN users ON users.id = rx_stats.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) ORDER BY case when ranked_score_{mode} then ranked_score_{mode} END DESC, case when ranked_score_{mode} = 0 then pp_{mode} END DESC")
-        log.info("rx 리더보드 score 정렬")
-    rx_lb = mycursor.fetchall()
+    if int(rx) == 0:
+        table = "users_stats"
+        rx = "vn"
+        tt = "Vanilla"
+    elif int(rx) == 1:
+        table = "rx_stats"
+        rx = "rx"
+        tt = "Relax"
+    elif int(rx) == 2:
+        table = "ap_stats"
+        rx = "ap"
+        tt = "Autopilot"
+    else:
+        table = "users_stats"
+        rx = "vn"
+        tt = "Vanilla"
+
+    sql = f"SELECT {table}.country, {table}.id, {table}.username, {table}.pp_{mode}, {table}.ranked_score_{mode}, {table}.avg_accuracy_{mode}, {table}.playcount_{mode}, {table}.level_{mode} FROM {table} LEFT JOIN users ON users.id = {table}.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2)"
+
+    if int(board) == 0:
+        sql += f"ORDER BY case when pp_{mode} then pp_{mode} END DESC, case when pp_{mode} = 0 then ranked_score_{mode} END DESC"
+        board = "pp"
+    elif int(board) == 1:
+        sql += f"ORDER BY case when ranked_score_{mode} then ranked_score_{mode} END DESC, case when ranked_score_{mode} = 0 then pp_{mode} END DESC"
+        board = "score"
+
+    mycursor.execute(sql)
+    lb = mycursor.fetchall()
+    log.info(f"{mode} {rx} 리더보드 {board} 정렬")
 
     ReadableArray = []
-    if len(rx_lb) is not 0:
+    if len(lb) is not 0:
         i = 1
-        for x in rx_lb:
+        for x in lb:
             Dicti = {}
             Dicti["Rank"] = i
 
@@ -352,55 +385,7 @@ def RX_leaderboard():
             ReadableArray.append(Dicti)
             i += 1
     
-    return render_template("rx_leaderboard.html", data=DashData(), session=session, title="Relax Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by pp_{mode}")
-
-""" AP 리더보드 """
-@app.route("/frontend/leaderboard/ap")
-#아 국가별 리더보드 만들기 존나 귀찮다
-def AP_leaderboard():
-    query = request.args.get("mode")
-    query2 = request.args.get("board")
-    if query is None:
-        return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/ap?mode=0&board=0")
-    elif query2 is None:
-         return redirect(f"https://admin.{ServerDomain}/frontend/leaderboard/ap?mode=0&board=0")
-    elif int(query) > 3:
-        return "WHAT IS THAT MODE?"
-
-    mode = ["std", "taiko", "ctb", "mania"]
-    mode = mode[int(query)]
-
-    if int(query2) == 0:
-        mycursor.execute(f"SELECT ap_stats.country, ap_stats.id, ap_stats.username, ap_stats.pp_{mode}, ap_stats.ranked_score_{mode}, ap_stats.avg_accuracy_{mode}, ap_stats.playcount_{mode}, ap_stats.level_{mode} FROM ap_stats LEFT JOIN users ON users.id = ap_stats.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) ORDER BY case when pp_{mode} then pp_{mode} END DESC, case when pp_{mode} = 0 then ranked_score_{mode} END DESC")
-        log.info("ap 리더보드 pp 정렬")
-    elif int(query2) == 1:
-        mycursor.execute(f"SELECT ap_stats.country, ap_stats.id, ap_stats.username, ap_stats.pp_{mode}, ap_stats.ranked_score_{mode}, ap_stats.avg_accuracy_{mode}, ap_stats.playcount_{mode}, ap_stats.level_{mode} FROM ap_stats LEFT JOIN users ON users.id = ap_stats.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) ORDER BY case when ranked_score_{mode} then ranked_score_{mode} END DESC, case when ranked_score_{mode} = 0 then pp_{mode} END DESC")
-        log.info("ap 리더보드 score 정렬")
-    ap_lb = mycursor.fetchall()
-
-    ReadableArray = []
-    if len(ap_lb) is not 0:
-        i = 1
-        for x in ap_lb:
-            Dicti = {}
-            Dicti["Rank"] = i
-
-            Dicti["Country"] = x[0]
-            Dicti["PlayerId"] = x[1]
-            Dicti["Player"] = x[2]
-
-            Dicti["pp"] = f"{round(x[3], 2):,}"
-            Dicti["Score"] = f'{x[4]:,}'
-
-            Dicti["Accuracy"] = f"{round(x[5], 2):,}"
-
-            Dicti["Playcount"] = f"{x[6]:,}"
-            Dicti["Level"] = f"{x[7]}"
-
-            ReadableArray.append(Dicti)
-            i += 1
-    
-    return render_template("ap_leaderboard.html", data=DashData(), session=session, title="Autopilot Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by pp_{mode}")
+    return render_template("leaderboard.html", data=DashData(), session=session, title=f"{tt} Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by pp_{mode}")
 
 """ give-betatag http """
 @app.route("/frontend/give-betatag/<id>")

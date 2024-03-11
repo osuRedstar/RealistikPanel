@@ -7,14 +7,19 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h4>Autopilot Leaderboard ({{ type }}) 아 국가별 리더보드까지는 귀찮음 ㅅㄱ</h4>
+        <h4>{{ title }} ({{ type }}) 아 국가별 리더보드까지는 귀찮음 ㅅㄱ</h4>
     </div>
 
     <div style="margin-top: 16px;" class="col-12 col-md-6 col-lg-6">
-        <button onclick="location.replace(`https://redstar.moe/leaderboard?mode=0&board=0`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Vanilla</a></button>
-        <button onclick="location.replace(`/frontend/leaderboard/rx`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Relax</a></button>
-        <button onclick="location.replace(`?mode=0&board=0`)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a style="color: #6777ef;">Autopilot</a></button>
-    
+        <script>
+            function modChange(rx) {
+                location.replace(`?rx=${rx}&mode=${new URLSearchParams(location.search).get("mode")}&board=${new URLSearchParams(location.search).get("board")}`)
+            }
+        </script>
+        <button onclick="modChange(0)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a id="MCB0" style="color: #6777ef;">Vanilla</a></button>
+        <button onclick="modChange(1)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a id="MCB1" style="color: #6777ef;">Relax</a></button>
+        <button onclick="modChange(2)" class="btn btn-success" type="submit" name="" style="margin-top: 8px;"><a id="MCB2" style="color: #6777ef;">Autopilot</a></button>
+        <button class="btn" type="submit" name="" style="margin-top: 8px; background-color: #fc4b98;"><a href="https://redstar.moe/leaderboard" target="_blank" style="color: black;">go origin leaderboard</a></button>
     </div>
 
     <div class="card-body">
@@ -31,7 +36,7 @@
         <br>
 
         <form style="text-align: center;">
-            <select style="width: 200px; text-align: center;" class="form-control" id="mode_box2" name="language" onchange="chageLangSelect()">
+            <select style="width: 200px; text-align: center;" class="form-control" id="board_box" name="language" onchange="chageLangSelect()">
                 <option value="0" selected>=== Select board ===</option>
                 <option id="pp_sel" value="0">pp board</option>
                 <option id="score_sel" value="1">score board</option>
@@ -40,36 +45,43 @@
         <br>
         
         <div class="col-12 col-md-6 col-lg-6">
-            <button onclick="location.replace(`?mode=0&board=0`)" class="btn" type="submit" name="" style="margin-top: 8px; background-color: #fc4b98;">Reset</button>
+            <button onclick="location.replace(`?rx=0&mode=0&board=0`)" class="btn" type="submit" name="" style="margin-top: 8px; background-color: #fc4b98;">Reset</button>
         </div>
         <br>
 
         <script>
             //모드 변경
-            const param = new URLSearchParams(location.search).get("mode");
-            if (param == 0) {
+            const rx = new URLSearchParams(location.search).get("rx");
+            document.getElementById(`MCB${rx}`).style.color = "red"
+            const mode = new URLSearchParams(location.search).get("mode");
+            if (mode == 0) {
                 document.getElementById("std").selected = true
             }
-            else if (param == 1) {
+            else if (mode == 1) {
                 document.getElementById("taiko").selected = true
             }
-            else if (param == 2) {
+            else if (mode == 2) {
                 document.getElementById("ctb").selected = true
             }
-            else if (param == 3) {
+            else if (mode == 3) {
                 document.getElementById("mania").selected = true
-                alert("아 ㅋㅋ 매니아는 Autopilot 없다고 ㅋㅋ \n\nMania has NO Autopilot loooooooool")
+                if (rx == 1) {
+                    alert("아 ㅋㅋ 매니아는 Relax 없다고 ㅋㅋ \n\nMania has NO Relax loooooooool")
+                }
+                else if (rx == 2) {
+                    alert("아 ㅋㅋ 매니아는 Autopilot 없다고 ㅋㅋ \n\nMania has NO Autopilot loooooooool")
+                }
             }
             else {
                 document.getElementById("std").selected = true
             }
 
-            // pp/score 리더보드 변경 
-            const param2 = new URLSearchParams(location.search).get("board");
-            if (param2 == 0) {
+            // pp/score 리더보드 변경
+            const board = new URLSearchParams(location.search).get("board");
+            if (board == 0) {
                 document.getElementById("pp_sel").selected = true
             }
-            else if (param2 == 1) {
+            else if (board == 1) {
                 document.getElementById("score_sel").selected = true
             }
             else {
@@ -77,15 +89,15 @@
             }
 
             function chageLangSelect(){
-                var langSelect = document.getElementById("mode_box");
-                const langSelect2 = document.getElementById("mode_box2")
+                var modeSelect = document.getElementById("mode_box");
+                const boardSelect = document.getElementById("board_box")
                 
                 // select element에서 선택된 option의 value가 저장된다.
-                var selectValue = langSelect.options[langSelect.selectedIndex].value;
-                const selectValue2 = langSelect2.options[langSelect2.selectedIndex].value
+                var modeValue = modeSelect.options[modeSelect.selectedIndex].value;
+                const boardValue = boardSelect.options[boardSelect.selectedIndex].value
 
                 //location.replace(`?mode=${selectValue}`);
-                location.replace(`?mode=${selectValue}&board=${selectValue2}`);
+                location.replace(`?rx=${rx}&mode=${modeValue}&board=${boardValue}`);
 
             }
         </script>
