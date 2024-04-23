@@ -733,6 +733,8 @@ def SearchBeatmap(song_query, rank_select = False):
 """ pwreset http """
 @app.route("/frontend/pwreset/<id>", methods = ["GET", "POST"])
 def pw_reset(id):
+    idontknowemail = f"https://{ServerDomain}/settings"
+
     mycursor.execute(f"SELECT username FROM users WHERE id = {id}")
     username = mycursor.fetchone()[0]
 
@@ -745,6 +747,12 @@ def pw_reset(id):
         exfireDate = int(info[3].timestamp()) + 300
         nowDate = time.time()
         key = info[1].replace("Realistik Panel : ", "")
+        
+        #html에서 ttl 쿼리로 요청시 ttl만 반환
+        ttlRequest = request.args.get("ttl")
+        if ttlRequest is not None:
+            ttl = int(exfireDate - nowDate)
+            return Response(json.dumps({"ttl": ttl, "query": ttlRequest}, indent=2, ensure_ascii=False), content_type='application/json')
         
         if exfireDate < nowDate:
             noRecoveryData = True
@@ -770,9 +778,9 @@ def pw_reset(id):
     if request.method == "GET":
         if noRecoveryData:
             code = sendPwresetMail(session, id)
-            return render_template("pwreset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Check Your Email!", config=UserConfig, code=code, password=None, pw=False)
+            return render_template("pwreset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Check Your Email!", config=UserConfig, code=code, idontknowemail=idontknowemail, password=None, ck=False)
         else:
-            return render_template("pwreset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, password=None, pw=False)
+            return render_template("pwreset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, idontknowemail=idontknowemail, password=None, ck=False)
     else:
         #위에 GET에서 들어오는 요청과 POST에서 다시 POST로 들어오는 요청 2개임
         try:
@@ -802,13 +810,13 @@ def pw_reset(id):
             """
 
             return html
-            return render_template("pwreset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code = code, password = password, pw = True) 
+            return render_template("pwreset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code=code, idontknowemail=idontknowemail, password=password, ck=True) 
         except:
             password = None
 
         if code == key:
             if exfireDate > nowDate: 
-                return render_template("pwreset_confirm.html", title="Reset Password!", data=DashData(), session=session, config=UserConfig, code = code, password = password, pw = True)
+                return render_template("pwreset_confirm.html", title="Reset Password!", data=DashData(), session=session, config=UserConfig, code=code, idontknowemail=idontknowemail, password=password, ck=True)
             else:
                 log.warning("비번 재설정 키 만료됨!")
                 mycursor.execute(f"DELETE FROM password_recovery WHERE id = {info[0]} AND k LIKE 'Realistik Panel : %'")
@@ -829,7 +837,7 @@ def pw_reset(id):
 
             return html
         else:
-            return render_template("pwreset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code = code, password = None, pw = False)
+            return render_template("pwreset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code=code,idontknowemail=idontknowemail, password=None, ck=False)
 
 """ pwreset http """
 @app.route("/frontend/pwreset", methods = ["GET", "POST"])
@@ -853,13 +861,13 @@ def get_pw_reset():
 """ pwreset http """
 @app.route("/frontend/namereset/<id>", methods = ["GET", "POST"])
 def name_reset(id):
-    mycursor.execute(f"SELECT username FROM users WHERE id = {id}")
-    username = mycursor.fetchone()[0]
+    #html에서 ttl 쿼리로 요청시 ttl만 반환
+    ttlRequest = request.args.get("ttl")
+    if ttlRequest is not None:
+        ttl = r.ttl(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
+        return Response(json.dumps({"ttl": ttl, "query": ttlRequest}, indent=2, ensure_ascii=False), content_type='application/json')
 
-    """ if AuthKey == AuthKeyCheck:
-        r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
-    else:
-        return 403 """
+    idontknowemail = f"https://{ServerDomain}/settings"
     
     try:
         key = r.get(f"RealistikPanel:UsernameResetMailAuthKey:{id}").decode("utf-8")
@@ -875,13 +883,11 @@ def name_reset(id):
         if key is None:
             code = sendUsernameresetMail(session, id)
             if type(code) != str:
-                
                 return Response(json.dumps({"code": str(code), "msg": "Mail Send ERROR!! Please report to admin!!"}, indent=2, ensure_ascii=False), status=500, content_type='application/json') 
-            return render_template("namereset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Check Your Email!", config=UserConfig, code=code, username=None, ck=False)
+            return render_template("namereset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Check Your Email!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=None, ck=False)
         else:
-            return render_template("namereset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, username=None, ck=False)
+            return render_template("namereset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, idontknowemail=idontknowemail, username=None, ck=False)
     else:
-        #raise
         #위에 GET에서 들어오는 요청과 POST에서 다시 POST로 들어오는 요청 2개임
         try:
             code = request.form["code"]
@@ -908,15 +914,15 @@ def name_reset(id):
             """
 
             return html
-            return render_template("namereset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code = code, username = NewUsername, ck = True) 
+            return render_template("namereset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=NewUsername, ck=True) 
         except:
             NewUsername = None
 
         if key:
             if code == key:
-                return render_template("namereset_confirm.html", title="Input Your NewUsername!", data=DashData(), session=session, config=UserConfig, code = code, username = NewUsername, ck = True)
+                return render_template("namereset_confirm.html", title="Input Your NewUsername!", data=DashData(), session=session, config=UserConfig, code=code, idontknowemail=idontknowemail, username=NewUsername, ck=True)
             else:
-                return render_template("namereset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code = code, username = None, ck = False)
+                return render_template("namereset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=None, ck=False)
         else:
             log.warning("비번 재설정 키 만료됨!")
             r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
@@ -952,63 +958,6 @@ def get_name_reset():
             userID = userID[0]["Id"]
 
         return redirect(f"/frontend/namereset/{userID}") #does this even work
-    else:
-        return render_template("namereset.html", title="Reset Username!", data=DashData(), session=session, config=UserConfig)
-
-""" pwreset http """
-@app.route("/frontend/namereset", methods = ["GET", "POST"])
-def get_name_reset2():
-    try:
-        key = request.form["code"]
-        log.chat(f"key = {key}")
-    except:
-        key = None
-    try:
-        NewUsername = request.form["NewUsername"]
-        log.chat(f"NewUsername = {NewUsername}")
-    except:
-        NewUsername = None
-
-    if request.method == "POST":
-        userinfo = request.form["userinfo"]
-        try:
-            userID = int(userinfo) #ID인 경우
-        except:
-            log.error(f"userinfo 는 숫자가 아님 | {userinfo}")
-            userID = FindUserByUsername(userinfo, 1) #username, email인 경우
-            if len(userID) == 0:
-                log.error(f"user Not Found! | {userinfo}")
-                return f"user Not Found! | {userinfo}"
-            userID = userID[0]["Id"]
-
-        if key and NewUsername:
-            ChangeUsername(userID, NewUsername)
-            html = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Username Changed!</title>
-                    <meta http-equiv="refresh" content="3;url=https://{ServerDomain}/login">
-                </head>
-                <body>
-                    <h1 style="text-align: center;">username changed!! Redirect login page after 3sec</h1>
-                </body>
-                </html>
-            """
-
-            return html
-            #return render_template("namereset_confirm.html", title="Username Changed!", data=DashData(), session=session, success="Username Changed!", config=UserConfig, code=key, username=NewUsername, ck = True)
-        elif key:
-            return render_template("namereset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Input Your NewUsername!", config=UserConfig, code=key, username=None, ck=True)
-        else:
-            "이메일 전송 기능 구현하기?"
-            return render_template("namereset_confirm.html", title="Reset Username!", data=DashData(), session=session, config=UserConfig)
-            return render_template("namereset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Check Your Email!", config=UserConfig, code=code, username=None, ck=False)
-
-            return render_template("namereset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, username=None, ck=False)
-            return render_template("namereset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code = code, username = password, ck = True)
-            return render_template("namereset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code = code, username = None, ck = False)
-        #return redirect(f"/frontend/namereset/{userID}") #does this even work
     else:
         return render_template("namereset.html", title="Reset Username!", data=DashData(), session=session, config=UserConfig)
 
