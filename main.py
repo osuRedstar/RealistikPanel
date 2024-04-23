@@ -896,25 +896,28 @@ def name_reset(id):
 
         try:
             NewUsername = request.form["NewUsername"]
-            ChangeUsername(id, NewUsername)
 
-            r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
+            CU = ChangeUsername(id, NewUsername)
+            if CU["code"]:
+                r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
 
-            html = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Username Changed!</title>
-                    <meta http-equiv="refresh" content="3;url=https://{ServerDomain}/login">
-                </head>
-                <body>
-                    <h1 style="text-align: center;">username changed!! Redirect login page after 3sec</h1>
-                </body>
-                </html>
-            """
+                html = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Username Changed!</title>
+                        <meta http-equiv="refresh" content="3;url=https://{ServerDomain}/login">
+                    </head>
+                    <body>
+                        <h1 style="text-align: center;">username changed!! Redirect login page after 3sec</h1>
+                    </body>
+                    </html>
+                """
 
-            return html
-            return render_template("namereset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=NewUsername, ck=True) 
+                return html
+                return render_template("namereset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=NewUsername, ck=True) 
+            else:
+                return render_template("namereset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error=CU["msg"], config=UserConfig, code=code, idontknowemail=idontknowemail, username=None, ck=True)
         except:
             NewUsername = None
 

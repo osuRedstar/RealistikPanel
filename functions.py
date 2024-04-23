@@ -2267,6 +2267,11 @@ def ChangeUsername(AccountID: int, NewUsername: str):
     OldUsername = mycursor.fetchone()[0]
     NewUsernameSafe = RippleSafeUsername(NewUsername)
 
+    mycursor.execute("SELECT * FROM users WHERE username = %s OR username_safe = %s", [NewUsername, NewUsernameSafe])
+    isExistUsername = mycursor.fetchall()
+    if isExistUsername:
+        return {"code": False, "msg": f"{NewUsername} is exist"}
+
     #SQL Queries
     mycursor.execute("UPDATE users SET username = %s, username_safe = %s WHERE id = %s", (NewUsername, NewUsernameSafe, AccountID,))
     mycursor.execute("UPDATE users_stats SET username = %s WHERE id = %s", (NewUsername, AccountID,))
@@ -2285,6 +2290,7 @@ def ChangeUsername(AccountID: int, NewUsername: str):
         log.error("유저 닉변 소스코드중 redis에서 peppy:change_name 에서 에러남!")
 
     RAPLog(AccountID, f"has changed the username of {OldUsername} --> {NewUsername} ({AccountID})")
+    return {"code": True, "msg": f"changed {OldUsername} --> {NewUsername} ({AccountID})"}
 
 def GiveSupporterForm(form):
     """Handles the give supporter form/POST request."""
