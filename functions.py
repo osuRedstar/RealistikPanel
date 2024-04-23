@@ -2261,6 +2261,31 @@ def ChangePWForm(form, session): #this function may be unnecessary but ehh
     User = GetUser(form["accid"])
     RAPLog(session["AccountId"], f"has changed the password of {User['Username']} ({form['accid']})")
 
+def ChangeUsername(AccountID: int, NewUsername: str):
+    """Changes the username of a user with given AccID """
+    mycursor.execute("SELECT username FROM users WHERE id = %s", (AccountID,))
+    OldUsername = mycursor.fetchone()[0]
+    NewUsernameSafe = RippleSafeUsername(NewUsername)
+
+    #SQL Queries
+    mycursor.execute("UPDATE users SET username = %s, username_safe = %s WHERE id = %s", (NewUsername, NewUsernameSafe, AccountID,))
+    mycursor.execute("UPDATE users_stats SET username = %s WHERE id = %s", (NewUsername, AccountID,))
+    if UserConfig["HasRelax"]:
+        mycursor.execute("UPDATE rx_stats SET username = %s WHERE id = %s", (NewUsername, AccountID,))
+    if UserConfig["HasAutopilot"]:
+        mycursor.execute("UPDATE ap_stats SET username = %s WHERE id = %s", (NewUsername, AccountID,))
+    mydb.commit()
+
+    try:
+        r.publish("peppy:change_name", {
+            "user_id": AccountID
+        })
+    except Exception as e:
+        log.error(e)
+        log.error("유저 닉변 소스코드중 redis에서 peppy:change_name 에서 에러남!")
+
+    RAPLog(AccountID, f"has changed the username of {OldUsername} --> {NewUsername} ({AccountID})")
+
 def GiveSupporterForm(form):
     """Handles the give supporter form/POST request."""
     GiveSupporter(form["accid"], int(form["time"]))
@@ -2725,21 +2750,27 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
         smtp.quit()
         log.info(f"{type} 이메일 전송 성공")
     except Exception as e:
-        log.error(f"{type} 이메일 전송 실패:", str(e))
-        sc = 503
+        #SMTPDataError(code, resp), smtplib.SMTPDataError
+        log.error(f"{type} 이메일 전송 실패 : {e}")
+        sc = e
 
     # 보낸메일함에 복사
     try:
-        imap = imaplib.IMAP4_SSL("imap.daum.net", 993)
-        imap.login(sender_email, sender_password)
-        imap.append("Sent", None, None, msg.as_bytes())
-        log.info("보낸메일함 복사 성공!")
+        if sc == 200:
+            imap = imaplib.IMAP4_SSL("imap.daum.net", 993)
+            imap.login(sender_email, sender_password)
+            imap.append("Sent", None, None, msg.as_bytes())
+            log.info("보낸메일함 복사 성공!")
+        else:
+            log.warning("메일 전송 실패함에 따라 보낸메일함 복사는 하지 않음")
     except Exception as e:
-        log.error("보낸메일함 복사 실패:", str(e))
-        sc = 500
+        log.error(f"보낸메일함 복사 실패 : {e}")
+        sc = e
 
     # 디코 웹훅 전송
     try:
+        if sc != 200:
+            raise
         if not session["LoggedIn"] or session["AccountId"] == 0 or session["AccountName"] == "" or session["Privilege"] == 0:
             session["AccountId"] = 999
             session["AccountName"] = "Devlant"
@@ -2755,9 +2786,39 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
         log.error(f"디코 웹훅 전송 실패! | {e}")
     return sc
 
-def sendPwresetMail(session, userID, to_email):
-    mycursor.execute(f"SELECT username FROM users WHERE id = {userID}")
-    username = mycursor.fetchone()[0]
+def sendUsernameresetMail(session, userID):
+    mycursor.execute(f"SELECT username, email FROM users WHERE id = {userID}")
+    username, to_email = mycursor.fetchone()
+
+    key = "" 
+    for i in range(16):
+        key += random.choice(string.ascii_letters + string.digits) # 랜덤한 문자열 하나 선택
+    r.set(f"RealistikPanel:UsernameResetMailAuthKey:{userID}", key, 300)
+
+    # 보내는 사람 이메일 계정 정보
+    sender_email = UserConfig['Email']
+    sender_password = UserConfig['EmailPassword']
+
+    # 이메일 메시지 설정
+    subject = f"{username}'s username Change KEY"
+    body = key
+
+    msg = MIMEMultipart()
+    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
+    msg['To'] = f"{username} <{to_email}>"
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    mS = mailSend(session, sender_email, sender_password, to_email, msg, type="Username reset")
+    if mS != 200:
+        r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{userID}")
+        key = mS
+
+    return key
+
+def sendPwresetMail(session, userID):
+    mycursor.execute(f"SELECT username, email FROM users WHERE id = {userID}")
+    username, to_email = mycursor.fetchone()
 
     key = "" 
     for i in range(16) :
@@ -2780,7 +2841,11 @@ def sendPwresetMail(session, userID, to_email):
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
-    mailSend(session, sender_email, sender_password, to_email, msg, type="Pwreset")
+    mS = mailSend(session, sender_email, sender_password, to_email, msg, type="Pwreset")
+    if mS != 200:
+        mycursor.execute(f"DELETE FROM password_recovery WHERE k = 'Realistik Panel : {key}' AND u = '{username}'")
+        mydb.commit()
+        key = mS
 
     return key
 
