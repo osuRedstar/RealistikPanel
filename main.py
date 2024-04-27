@@ -350,25 +350,33 @@ def leaderboard():
         rx = "vn"
         tt = "Vanilla"
 
-    sql = f"SELECT {table}.country, {table}.id, {table}.username, {table}.pp_{mode}, {table}.ranked_score_{mode}, {table}.avg_accuracy_{mode}, {table}.playcount_{mode}, {table}.level_{mode} FROM {table} LEFT JOIN users ON users.id = {table}.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2)"
+    sql = f"SELECT {table}.country, {table}.id, {table}.username, {table}.pp_{mode}, {table}.ranked_score_{mode}, {table}.avg_accuracy_{mode}, {table}.playcount_{mode}, {table}.level_{mode} FROM {table} LEFT JOIN users ON users.id = {table}.id WHERE users.privileges NOT IN (0) AND users.privileges NOT IN (2) AND users.id != 999 "
 
     if int(board) == 0:
-        sql += f"ORDER BY case when pp_{mode} then pp_{mode} END DESC, case when pp_{mode} = 0 then ranked_score_{mode} END DESC"
+        sql += f"ORDER BY pp_{mode} DESC, ranked_score_{mode} DESC, avg_accuracy_{mode} DESC, level_{mode} DESC, playcount_{mode} DESC, {table}.id"
         board = "pp"
     elif int(board) == 1:
-        sql += f"ORDER BY case when ranked_score_{mode} then ranked_score_{mode} END DESC, case when ranked_score_{mode} = 0 then pp_{mode} END DESC"
+        sql += f"ORDER BY ranked_score_{mode} DESC, pp_{mode} DESC, avg_accuracy_{mode} DESC, level_{mode} DESC, playcount_{mode} DESC, {table}.id"
         board = "score"
+    elif int(board) == 2:
+        sql += f"ORDER BY avg_accuracy_{mode} DESC, pp_{mode} DESC, ranked_score_{mode} DESC, level_{mode} DESC, playcount_{mode} DESC, {table}.id"
+        board = "Accuracy"
+    elif int(board) == 3:
+        sql += f"ORDER BY playcount_{mode} DESC, pp_{mode} DESC, ranked_score_{mode} DESC, avg_accuracy_{mode} DESC, level_{mode} DESC, {table}.id"
+        board = "Playcount"
+    elif int(board) == 4:
+        sql += f"ORDER BY level_{mode} DESC, pp_{mode} DESC, ranked_score_{mode} DESC, avg_accuracy_{mode} DESC, playcount_{mode} DESC, {table}.id"
+        board = "level"
 
     mycursor.execute(sql)
     lb = mycursor.fetchall()
     log.info(f"{mode} {rx} 리더보드 {board} 정렬")
 
     ReadableArray = []
-    if len(lb) is not 0:
-        i = 1
-        for x in lb:
+    if len(lb) > 1:
+        for i, x in enumerate(lb):
             Dicti = {}
-            Dicti["Rank"] = i
+            Dicti["Rank"] = i + 1
 
             Dicti["Country"] = x[0]
             Dicti["PlayerId"] = x[1]
@@ -383,9 +391,8 @@ def leaderboard():
             Dicti["Level"] = f"{x[7]}"
 
             ReadableArray.append(Dicti)
-            i += 1
     
-    return render_template("leaderboard.html", data=DashData(), session=session, title=f"{tt} Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by pp_{mode}")
+    return render_template("leaderboard.html", data=DashData(), session=session, title=f"{tt} Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by {board}_{mode}")
 
 """ give-betatag http """
 @app.route("/frontend/give-betatag/<id>")
@@ -1656,6 +1663,15 @@ def BanchoStatus():
         print("[ERROR] /js/status/bancho: ", err)
         return jsonify({
             "result" : 0
+        })
+@app.route("/js/status/mediaserver")
+def MediaserverStatus():
+    try:
+        return jsonify(requests.get(UserConfig["ServerURL"].replace("://", "://b.") + "status", headers={"User-Agent": UserConfig["GitHubRepo"], "Referer": UserConfig["ServerURL"].replace("://", "://admin.")}, timeout=3).json()) #this url to provide a predictable result
+    except Exception as err:
+        print("[ERROR] /js/status/mediaserver: ", err)
+        return jsonify({
+            "code" : 500
         })
 
 #actions

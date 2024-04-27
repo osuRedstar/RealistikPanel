@@ -40,6 +40,9 @@
                 <option value="0" selected>=== Select board ===</option>
                 <option id="pp_sel" value="0">pp board</option>
                 <option id="score_sel" value="1">score board</option>
+                <option id="Accuracy_sel" value="2">Accuracy board</option>
+                <option id="Playcount_sel" value="3">Playcount board</option>
+                <option id="level_sel" value="4">level board</option>
             </select>
         </form>
         <br>
@@ -59,9 +62,15 @@
             }
             else if (mode == 1) {
                 document.getElementById("taiko").selected = true
+                if (rx == 2) {
+                    alert("아 ㅋㅋ 태고에는 Autopilot 없다고 ㅋㅋ \n\nTaiko has NO Autopilot loooooooool")
+                }
             }
             else if (mode == 2) {
                 document.getElementById("ctb").selected = true
+                if (rx == 2) {
+                    alert("아 ㅋㅋ 캐치에는 Autopilot 없다고 ㅋㅋ \n\nCTB has NO Autopilot loooooooool")
+                }
             }
             else if (mode == 3) {
                 document.getElementById("mania").selected = true
@@ -83,6 +92,15 @@
             }
             else if (board == 1) {
                 document.getElementById("score_sel").selected = true
+            }
+            else if (board == 2) {
+                document.getElementById("Accuracy_sel").selected = true
+            }
+            else if (board == 3) {
+                document.getElementById("Playcount_sel").selected = true
+            }
+            else if (board == 4) {
+                document.getElementById("level_sel").selected = true
             }
             else {
                 document.getElementById("pp_sel").selected = true
@@ -109,7 +127,7 @@
                     <th scope="col">Player</th>
                     <th scope="col">PP/Score</th>
                     <th scope="col">Accuracy</th>
-                    <th scope="col">Playcount</th>
+                    <th scope="col">Playcount (level)</th>
                 </tr>
             </thead>
             <tbody>
@@ -134,13 +152,18 @@
                     </td>
 
                     <td>
-                        <span class="ranked_status" style="color: pink;">
+                        <span class="Accuracyboard" style="color: pink;">
                             {{ play["Accuracy"] }}%
                         </span>
                     </td>
 
                     <td>
-                        {{ play["Playcount"] }} (lv. {{ play["Level"] }})
+                        <a class="Playcountboard">
+                            {{ play["Playcount"] }}
+                        </a>
+                        <a class="levelboard">
+                            (lv. {{ play["Level"] }})
+                        </a>
                     </td>
                     
                 </tr>
@@ -152,6 +175,9 @@
                 
                 pp_board = document.getElementsByClassName("ppboard")
                 score_board = document.getElementsByClassName("scoreboard")
+                Accuracy_board = document.getElementsByClassName("Accuracyboard")
+                Playcount_board = document.getElementsByClassName("Playcountboard")
+                level_board = document.getElementsByClassName("levelboard")
 
                 for (let i = 0; i < pp_board.length; i++) {
                     if (check_board == 0) {
@@ -159,8 +185,23 @@
                         score_board[i].style.color = "yellow"
                     }
                     else if (check_board == 1) {
-                        pp_board[i].style.color = "yellow"
                         score_board[i].style.color = "aqua"
+                        pp_board[i].style.color = "yellow"
+                    }
+                    else if (check_board == 2) {
+                        Accuracy_board[i].style.color = "aqua"
+                        pp_board[i].style.color = "yellow"
+                        score_board[i].style.color = "yellow"
+                    }
+                    else if (check_board == 3) {
+                        Playcount_board[i].style.color = "aqua"
+                        pp_board[i].style.color = "yellow"
+                        score_board[i].style.color = "yellow"
+                    }
+                    else if (check_board == 4) {
+                        level_board[i].style.color = "aqua"
+                        pp_board[i].style.color = "yellow"
+                        score_board[i].style.color = "yellow"
                     }
                 }
             </script>
