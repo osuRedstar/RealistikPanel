@@ -8,12 +8,12 @@
 
 <script>
     const title = document.querySelector("title")
-    title.innerText = title.innerText.replace("Relax", "{{ StatData[0]['Player'] }}'s Relax")
+    title.innerText = title.innerText.replace("Vanilla", "{{ StatData[0]['Player'] }}'s Vanilla")
 </script>
 
 <div class="card">
     <div class="card-header">
-        <h4>{{ StatData[0]["Player"] }}'s Relax Recent Plays ({{ type }})</h4>
+        <h4>{{ StatData[0]["Player"] }}'s Valilla Recent Plays ({{ type }})</h4>
     </div>
     <div class="card-body">
         <h3>Filters</h3>
@@ -54,7 +54,6 @@
             }
             else if (param == 3) {
                 document.getElementById("mania").selected = true
-                alert("아 ㅋㅋ 매니아는 Relax 없다고 ㅋㅋ \n\nMania has NO Relax loooooooool")
             }
             else {
                 document.getElementById("std").selected = true
@@ -166,12 +165,12 @@
                         <!-- html 취소선 긋기 -->
                         {% if play["completed"] != 3 %}
                             <del style="color: red;">
-                                <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_relax/{{ play['scoreID'] }}">
+                                <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_ap/{{ play['scoreID'] }}">
                                     Download
                                 </a>
                             </del>
                         {% else %}
-                            <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_relax/{{ play['scoreID'] }}">
+                            <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/replays_ap/{{ play['scoreID'] }}">
                                 Download
                             </a>
                         {% endif %}

@@ -48,9 +48,11 @@
             }
             else if (param == 1) {
                 document.getElementById("taiko").selected = true
+                alert("아 ㅋㅋ 태고는 Autopilot 없다고 ㅋㅋ \n\nTaiko has NO Autopilot loooooooool")
             }
             else if (param == 2) {
                 document.getElementById("ctb").selected = true
+                alert("아 ㅋㅋ 캐치는 Autopilot 없다고 ㅋㅋ \n\nCTB has NO Autopilot loooooooool")
             }
             else if (param == 3) {
                 document.getElementById("mania").selected = true
@@ -90,9 +92,15 @@
                 </a>
             </h1>
             <h1>
-                Total Submit count {{ StatData[0]["gameMode"] }} = 
+                Total Submit count = 
                 <a id="total_submit_count" style="color: #6777ef;">
                     {{ StatData[0]["submit_count"] }}
+                </a>
+            </h1>
+            <h1>
+                Playcount = 
+                <a id="playcount" style="color: #6777ef;">
+                    {{ StatData[0]["playcount"] }}
                 </a>
             </h1>
         </div>

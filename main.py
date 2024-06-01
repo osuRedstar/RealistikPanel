@@ -1357,11 +1357,12 @@ def ClanDeleteConfirm(ClanID):
 
 
 #릴렉 유저별 최근 기록 조회
-def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
+def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
     if rx:
-        RXorAP = ["rx", "relax"]
+        RXorAP = ["rx", "_relax", ""]
     elif ap:
-        RXorAP = ["ap", "ap"]
+        RXorAP = ["ap", "_ap", ""]
+    else: RXorAP = ["users", "", ""]
 
     try:
         """Returns recent plays."""
@@ -1369,14 +1370,19 @@ def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=Fals
 
         log.info("RecentPlay_user 함수 요청됨")
         if gamemode == 0:
-            log.info(f"{RXorAP[0].upper()}유페 STD 검사")
+            mode = "std"
+            log.info(f"{RXorAP[0].upper()} 유페 STD 검사")
         elif gamemode == 1:
-            log.info(f"{RXorAP[0].upper()}유페 Taiko 검사")
+            mode = "taiko"
+            log.info(f"{RXorAP[0].upper()} 유페 Taiko 검사")
         elif gamemode == 2:
-            log.info(f"{RXorAP[0].upper()}유페 CTB 검사")
+            mode = "ctb"
+            log.info(f"{RXorAP[0].upper()} 유페 CTB 검사")
         elif gamemode == 3:
-            log.info(f"{RXorAP[0].upper()}유페 Mania 검사")
+            mode = "mania"
+            log.info(f"{RXorAP[0].upper()} 유페 Mania 검사")
         else:
+            mode = "std"
             log.error("gamemode = {}".format(gamemode))
 
         if text == "ORDER_Recent":
@@ -1384,9 +1390,6 @@ def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=Fals
         elif text == "ORDER_pp":
             order_by = "s.pp"
 
-        #rx
-        #mycursor.execute(f"SELECT scores_{RXorAP[1]}.beatmap_md5, users.username, scores_{RXorAP[1]}.userid, scores_{RXorAP[1]}.time, scores_{RXorAP[1]}.score, scores_{RXorAP[1]}.pp, scores_{RXorAP[1]}.play_mode, scores_{RXorAP[1]}.mods, scores_{RXorAP[1]}.300_count, scores_{RXorAP[1]}.100_count, scores_{RXorAP[1]}.50_count, scores_{RXorAP[1]}.misses_count, scores_{RXorAP[1]}.id, scores_{RXorAP[1]}.completed FROM scores_{RXorAP[1]} LEFT JOIN users ON users.id = scores_{RXorAP[1]}.userid WHERE scores_{RXorAP[1]}.completed != 0 and scores_{RXorAP[1]}.userid = {uid} AND scores_{RXorAP[1]}.pp >= {minpp} and scores_{RXorAP[1]}.play_mode = {gamemode} ORDER BY {order_by} DESC limit 100")
-        
         SQL = f"""
             SELECT 
                 s.beatmap_md5,
@@ -1408,7 +1411,7 @@ def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=Fals
                 b.beatmapset_id,
                 b.ranked
             FROM (
-                SELECT * FROM scores_{RXorAP[1]} WHERE pp >= {minpp}
+                SELECT * FROM scores{RXorAP[1]} WHERE pp >= {minpp}
             ) AS s
             LEFT JOIN users AS u ON u.id = s.userid
             LEFT JOIN (
@@ -1459,7 +1462,7 @@ def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=Fals
                 Dicti["scoreID"] = x[12]
                 Dicti["completed"] = x[13]
                 
-                mycursor.execute(f"SELECT COUNT(*) FROM scores_{RXorAP[1]} WHERE userid = %s AND scores_{RXorAP[1]}.pp >= %s and scores_{RXorAP[1]}.play_mode = %s ORDER BY id DESC", (uid, minpp, gamemode))
+                mycursor.execute(f"SELECT COUNT(*) FROM scores{RXorAP[1]} WHERE userid = %s AND pp >= %s and play_mode = %s ORDER BY id DESC", (uid, minpp, gamemode))
                 Dicti["submit_count"] = f"{mycursor.fetchone()[0]:,}"
 
                 try:
@@ -1491,46 +1494,14 @@ def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=Fals
                     Dicti["beatmapID"] = BeatmapMD5
                     Dicti["Nodata_SongName"] = SongName
 
-                #유페 totalPP, ranked_score추가
-                if gamemode == 0:
-                    mycursor.execute(f"SELECT pp_std, avg_accuracy_std, ranked_score_std FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
-                    result = mycursor.fetchall()[0]
-                    totalPP = result[0]
-                    accuracy = result[1]
-                    ranked_score = result[2]
-                    Dicti["gameMode"] = " [STD]"
-                elif gamemode == 1:
-                    mycursor.execute(f"SELECT pp_taiko, avg_accuracy_taiko, ranked_score_taiko FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
-                    result = mycursor.fetchall()[0]
-                    totalPP = result[0]
-                    accuracy = result[1]
-                    ranked_score = result[2]
-                    Dicti["gameMode"] = " [Taiko]"
-                elif gamemode == 2:
-                    mycursor.execute(f"SELECT pp_ctb, avg_accuracy_ctb, ranked_score_ctb FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
-                    result = mycursor.fetchall()[0]
-                    totalPP = result[0]
-                    accuracy = result[1]
-                    ranked_score = result[2]
-                    Dicti["gameMode"] = " [CTB]"
-                elif gamemode == 3:
-                    mycursor.execute(f"SELECT pp_mania, avg_accuracy_mania, ranked_score_mania FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
-                    result = mycursor.fetchall()[0]
-                    totalPP = result[0]
-                    accuracy = result[1]
-                    ranked_score = result[2]
-                    Dicti["gameMode"] = " [Mania]"
-                else:
-                    mycursor.execute(f"SELECT pp_std, avg_accuracy_std, ranked_score_std FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
-                    result = mycursor.fetchall()[0]
-                    totalPP = result[0]
-                    accuracy = result[1]
-                    ranked_score = result[2]
-                    Dicti["gameMode"] = " []"
+                #유페 totalPP, accuracy, ranked_score, playcount 추가
+                mycursor.execute(f"SELECT pp_{mode}, avg_accuracy_{mode}, ranked_score_{mode}, playcount_{mode} FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
+                stats = mycursor.fetchall()[0]
 
-                Dicti["totalPP"] = f"{totalPP:,}"
-                Dicti["accuracy"] = round(accuracy, 2)
-                Dicti["ranked_score"] = f"{ranked_score:,}"
+                Dicti["totalPP"] = f'{stats[0]:,}'
+                Dicti["accuracy"] = round(stats[1], 2)
+                Dicti["ranked_score"] = f'{stats[2]:,}'
+                Dicti["playcount"] = f'{stats[3]:,}'
 
                 ReadableArray.append(Dicti)
             
@@ -1572,13 +1543,29 @@ def RecentPlays_user_rx_ap(text, uid, gamemode = 0, minpp = 0, rx=False, ap=Fals
         return NODATA(uid)
         return "No {} Data on {}".format(RXorAP[1], uid)
 
+@app.route("/u/vn/<uid>", methods = ["GET", "POST"])
+def u_vn_bestPP(uid):
+    gamemode = request.args.get("mode")
+    if gamemode is None:
+        return redirect(f"https://admin.{ServerDomain}/u/vn/{uid}?mode=0")
+    MinPP = request.form.get("minpp", 0)
+    return render_template("vn_userpage.html", data=DashData(), session=session, title="Vanilla User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP), MinPP = MinPP, type = "ORDER by pp")
+
+@app.route("/u/vn/recent/<uid>", methods = ["GET", "POST"])
+def u_vn_recent(uid):
+    gamemode = request.args.get("mode")
+    if gamemode is None:
+        return redirect(f"https://admin.{ServerDomain}/u/vn/recent/{uid}?mode=0")
+    MinPP = request.form.get("minpp", 0)
+    return render_template("vn_userpage.html", data=DashData(), session=session, title="Vanilla UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP), MinPP = MinPP, type = "ORDER by time")
+
 @app.route("/u/rx/<uid>", methods = ["GET", "POST"])
 def u_rx_bestPP(uid):
     gamemode = request.args.get("mode")
     if gamemode is None:
         return redirect(f"https://admin.{ServerDomain}/u/rx/{uid}?mode=0")
     MinPP = request.form.get("minpp", 0)
-    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_pp", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by pp")
+    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by pp")
 
 @app.route("/u/rx/recent/<uid>", methods = ["GET", "POST"])
 def u_rx_recent(uid):
@@ -1586,7 +1573,7 @@ def u_rx_recent(uid):
     if gamemode is None:
         return redirect(f"https://admin.{ServerDomain}/u/rx/recent/{uid}?mode=0")
     MinPP = request.form.get("minpp", 0)
-    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_Recent", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by time")
+    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by time")
 
 @app.route("/u/ap/<uid>", methods = ["GET", "POST"])
 def u_ap_bestPP(uid):
@@ -1594,7 +1581,7 @@ def u_ap_bestPP(uid):
     if gamemode is None:
         return redirect(f"https://admin.{ServerDomain}/u/ap/{uid}?mode=0")
     MinPP = request.form.get("minpp", 0)
-    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_pp", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by pp")
+    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by pp")
 
 @app.route("/u/ap/recent/<uid>", methods = ["GET", "POST"])
 def u_ap_recent(uid):
@@ -1602,7 +1589,7 @@ def u_ap_recent(uid):
     if gamemode is None:
         return redirect(f"https://admin.{ServerDomain}/u/ap/recent/{uid}?mode=0")
     MinPP = request.form.get("minpp", 0)
-    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user_rx_ap("ORDER_Recent", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by time")
+    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by time")
 
 @app.route("/stats", methods = ["GET", "POST"])
 def StatsRoute():
