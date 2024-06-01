@@ -9,16 +9,20 @@
     </div>
     <div class="card-body">
         <form action="/sendbanmail" method="post">
-            <div class="form-group">
+            <div id="divAppend" class="form-group">
                 Choose according to the format!<br>
                 <label>userID</label>
                 <input type="number" class="form-control" name="userid" required>
 
-                <label>Reason</label>
-                <input type="text" class="form-control" name="msg" placeholder="ex) xi - over the top [Above the stars] +HDDTRX (96.05%) 3543.93pp" required>
-
-                <label>Beatmap ID</label>
-                <input type="number" class="form-control" name="bid" placeholder="ex) 1821147 (없으면 0 적으세요, If not enter 0)" required>
+                <div id="BI1", class="beatmap_info">
+                    <label>Reason</label>
+                    <input type="text" class="form-control" name="msg" placeholder="ex) xi - over the top [Above the stars] +HDDTRX (96.05%) 3543.93pp" required>
+    
+                    <label>Beatmap ID</label>
+                    <input type="number" class="form-control" name="bid" placeholder="ex) 1821147 (없으면 0 적으세요, If not enter 0)" required>
+                
+                    <!-- <button id="addBeatmapInfo" class="btn btn-primary">Add Beatmap Info</button> -->
+                </div>
             </div>
             <button class="btn btn-primary mr-1" type="submit" name="">Send</button>
         </form>
@@ -27,4 +31,47 @@
         RealistikPanel!
     </div>
 </div>
+
+<script>
+    function ABI(params) {
+        const NBI = document.createElement("div")
+        const num = document.getElementsByClassName("beatmap_info").length
+        NBI.id = "BI" + (num + 1)
+        console.log(NBI)
+
+        var labelReason = document.createElement("label");
+        labelReason.textContent = "Reason"; // 라벨 텍스트 설정
+        console.log(labelReason)
+
+        var inputReason = document.createElement("input");
+        inputReason.setAttribute("type", "text");
+        inputReason.setAttribute("class", "form-control");
+        inputReason.setAttribute("name", `msg${num + 1}`);
+        inputReason.setAttribute("placeholder", "ex) xi - over the top [Above the stars] +HDDTRX (96.05%) 3543.93pp");
+        inputReason.setAttribute("required", "");
+        console.log(inputReason)
+
+        var labelBeatmapID = document.createElement("label");
+        labelBeatmapID.textContent = "Beatmap ID"; // 라벨 텍스트 설정
+        console.log(labelBeatmapID)
+
+        var inputBeatmapID = document.createElement("input");
+        inputBeatmapID.setAttribute("type", "number");
+        inputBeatmapID.setAttribute("class", "form-control");
+        inputBeatmapID.setAttribute("name", `bid${num + 1}`);
+        inputBeatmapID.setAttribute("placeholder", "ex) 1821147 (없으면 0 적으세요, If not enter 0)");
+        inputBeatmapID.setAttribute("required", "");
+        console.log(inputBeatmapID)
+
+        NBI.appendChild("labelReason")
+        NBI.appendChild("inputReason")
+        NBI.appendChild("labelBeatmapID")
+        NBI.appendChild("inputBeatmapID")
+        document.getElementById("divAppend").appendChild(NBI)
+    }
+
+    const addBeatmapInfo = document.getElementById("addBeatmapInfo")
+    addBeatmapInfo.addEventListener("click", ABI)
+</script>
+
 {% endblock %}
