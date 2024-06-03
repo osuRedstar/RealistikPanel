@@ -394,46 +394,6 @@ def leaderboard():
     
     return render_template("leaderboard.html", data=DashData(), session=session, title=f"{tt} Leaderboard", config=UserConfig, StatData = ReadableArray, type = f"ORDER by {board}_{mode}")
 
-""" give-betatag http """
-@app.route("/frontend/give-betatag/<id>")
-def give_betatag(id):
-    #ap_stats Table 추가
-    try:
-        mycursor.execute("SELECT * FROM rx_stats WHERE id = {}".format(id))
-        rx_stats = mycursor.fetchall()
-        mycursor.execute("INSERT INTO ap_stats VALUE {}".format(rx_stats[0]))
-        msg = "ap_stats Table Insert Success!!\n\n"
-    except:
-        try:
-            mycursor.execute("SELECT * FROM ap_stats WHERE id = {};".format(id))
-            ap_userinfo = mycursor.fetchall()
-            msg = "ap_stats Table already have\n\n"
-            if not ap_userinfo:
-                raise
-        except:
-            msg = "ap_stats Table Insert Fail!!\nPlease report This to Admin\n\n"
-
-    #betatag
-    mycursor.execute("SELECT username FROM users WHERE id = {}".format(id))
-    username = mycursor.fetchone()[0]
-
-    mycursor.execute("SELECT id FROM badges WHERE name = 'Beta Tester'")
-    beta_badge_id = mycursor.fetchone()[0]
-
-    try:
-        mycursor.execute("SELECT id, user, badge FROM user_badges WHERE user = {} AND badge = {}".format(id, beta_badge_id))
-        have_beta_badge = mycursor.fetchall()[0]
-        msg += f"Refused | {username} ({id}) already have Beta Tester ({beta_badge_id}) badge"
-        log.warning(msg)
-        return msg
-    except:
-        mycursor.execute("INSERT INTO user_badges (user, badge) VALUES (%s, %s)", (id, beta_badge_id,))
-        mydb.commit()
-    
-    msg += f"Success | {username} ({id}) given Beta Tester ({beta_badge_id})"
-    log.debug(msg)
-    return msg
-
 """ ranked_status http + rankedby"""
 @app.route("/frontend/ranked_status/<id>")
 def ranked_status(id):
