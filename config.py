@@ -28,10 +28,10 @@ DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
     "HasRelax" : True,
     "HasAutopilot" : False,
     "AvatarDir" : "/mnt/b/redstar/avatar-server/avatar",
-    "Webhook-std": "https://discord.com/api/webhooks/917776966436921365/Bl5dKmiaUitXoJBD5fS29L2yxqR-xUr7KHNye5D1mJKOIIT0vrZ748q4t-ifEGIgHR22",
-    "Webhook-mania": "https://discord.com/api/webhooks/1067527476491862036/g1f68i7Ai1E4aDLMwW8eDTVN0dCWz2pB894EADxGlyh_x29sLvXvUH5-Qr3K8JVSKZNF",
-    "Webhook-ctb": "https://discord.com/api/webhooks/1067527733451702282/TWvnIu1L6gooM7WNPIgGFwW9p8eeOmNTMzJ9OZw5YpZY4BpP3qLn4PLCxYDJ4MDmso33",
-    "Webhook-taiko": "https://discord.com/api/webhooks/1067527881003106415/k7Bn-_9L8LGozXYNMIy646cj5sccR8clgNYObFGNN_GFV01AktuJ9j7AZTKxNxJWHb2I", #Discord webhook for posting newly ranked maps
+    "Webhook-std": "",
+    "Webhook-mania": "",
+    "Webhook-ctb": "",
+    "Webhook-taiko": "", #Discord webhook for posting newly ranked maps
     #Recaptcha v2 for the login page
     "UseRecaptcha" : False,
     "RecaptchaSecret" : "",
