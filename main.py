@@ -7,6 +7,7 @@ from colorama import Fore, init
 import os
 from updater import *
 from threading import Thread
+import logging
 
 #log함수? 추가
 from lets_common_log import logUtils as log
@@ -19,6 +20,12 @@ ConsoleLog(f"RealistikPanel (Build {GetBuild()}) started!")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #encrypts the session cookie
+
+class NoPingFilter(logging.Filter):
+    def filter(self, record):
+        return "/ping" not in record.getMessage()
+# Apply the filter to Flask's default logger
+logging.getLogger('werkzeug').addFilter(NoPingFilter())
 
 ServerDomain = UserConfig["ServerURL"].replace("https://", "").replace("/", "")
 
@@ -1584,6 +1591,9 @@ def PPApi(id):
     except:
         return jsonify({"code" : 500})
 #api mirrors
+@app.route("/ping")
+def Status():
+    return Response(json.dumps({"code": 200}, indent=2, ensure_ascii=False), content_type='application/json')
 @app.route("/js/status/api")
 def ApiStatus():
     try:
