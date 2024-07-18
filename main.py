@@ -1,5 +1,6 @@
 #This file is responsible for running the web server and (mostly nothing else)
 from flask import Flask, render_template, session, redirect, url_for, request, send_from_directory, jsonify, Response
+from werkzeug.middleware.proxy_fix import ProxyFix
 from defaults import *
 from config import UserConfig
 from functions import *
@@ -20,6 +21,7 @@ ConsoleLog(f"RealistikPanel (Build {GetBuild()}) started!")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #encrypts the session cookie
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=1, x_host=1, x_port=1, x_prefix=1) #ProxyFix 미들웨어 추가
 
 class NoPingFilter(logging.Filter):
     def filter(self, record):
