@@ -2163,17 +2163,20 @@ def SetBMAPSetStatus(BeatmapSet: int, Staus: int, session):
     FokaMessage(params)
 
 
-def FindUserByUsername(User: str, Page):
+def FindUserByUsername(User: str, Page: int, privilege = -1, badge = -1):
     """Finds user by their username OR email."""
+    privilege = f"and privileges = {privilege} " if privilege != -1 else ""
+    badge = f"and u.id IN (SELECT ub.user FROM user_badges ub WHERE ub.badge = {badge}) " if badge != -1 else ""
+
     #calculating page offsets
     Offset = UserConfig["PageSize"] * (Page - 1)
     #checking if its an email
     Split = User.split("@")
     if len(Split) == 2 and "." in Split[1]: #if its an email, 2nd check makes sure its an email and not someone trying to be A E S T H E T I C
-        mycursor.execute("SELECT id, username, privileges, allowed FROM users WHERE email LIKE %s LIMIT %s OFFSET %s", (User, UserConfig["PageSize"], Offset,)) #i will keep the like statement unless it causes issues
+        mycursor.execute(f"SELECT u.id, u.username, u.privileges, u.allowed FROM users u WHERE u.email LIKE %s {privilege+badge} LIMIT %s OFFSET %s", (User, UserConfig["PageSize"], Offset,)) #i will keep the like statement unless it causes issues
     else: #its a username
         User = f"%{User}%" #for sql to treat is as substring
-        mycursor.execute("SELECT id, username, privileges, allowed FROM users WHERE username LIKE %s LIMIT %s OFFSET %s", (User, UserConfig["PageSize"], Offset,))
+        mycursor.execute(f"SELECT u.id, u.username, u.privileges, u.allowed FROM users u WHERE u.username LIKE %s {privilege+badge} LIMIT %s OFFSET %s", (User, UserConfig["PageSize"], Offset,))
     Users = mycursor.fetchall()
     if len(Users) > 0:
         PrivilegeDict = {}

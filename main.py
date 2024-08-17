@@ -21,7 +21,7 @@ ConsoleLog(f"RealistikPanel (Build {GetBuild()}) started!")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #encrypts the session cookie
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=1, x_host=1, x_port=1, x_prefix=1) #ProxyFix 미들웨어 추가
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1) #ProxyFix 미들웨어 추가
 
 class NoPingFilter(logging.Filter):
     def filter(self, record):
@@ -53,8 +53,7 @@ def dash():
         else:
             return render_template("dash.html", title="Dashboard", session=session, data=DashData(), restricteduserlist=json.loads(RestrictedUserList(dash=True))[0], banneduserlist=json.loads(BannedUserList(dash=True))[0], plays=RecentPlays(), config=UserConfig, Graph=DashActData(), MostPlayed=GetMostPlayed(), info=f"Hey! RealistikPanel has been recently updated to build <b>{GetBuild()}</b>! Check out <a href='/changelogs'>what's new here!</a>")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
     
 
 @app.route("/recent_RegisteredUsers")
@@ -100,8 +99,7 @@ def RecentRegisteredUsers():
         
         return Response(json.dumps({"users":result, "users_stats":result2, "ip_users":result3}, indent=2, ensure_ascii=False), content_type='application/json')
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 
 @app.route("/onlineusers_list")
@@ -252,12 +250,10 @@ def foka_message():
         if HasPrivilege(session["AccountId"], 3):
             return render_template("fokamessage.html", title="Fokamessage", data=DashData(), session=session, config=UserConfig)
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
     else:
         if not HasPrivilege(session["AccountId"]): #mixing things up eh
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
         else:
             channel = request.form['channel']
             msg = request.form['message']
@@ -277,8 +273,7 @@ def foka_message():
 def ipToUser():
     if request.method == "GET":
         if not HasPrivilege(session["AccountId"]): #mixing things up eh
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
         else:
             return render_template("iptousers.html", title="IP To users", data=DashData(), session=session, config=UserConfig)
     else:
@@ -289,8 +284,7 @@ def ipToUser():
 @app.route("/iptousers/<ip>")
 def ipToUserApi(ip):
     if not HasPrivilege(session["AccountId"]): #mixing things up eh
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
     else:
         mycursor.execute(f"SELECT userid, username FROM ip_user INNER JOIN users ON ip_user.userid = users.id WHERE ip = '{ip}'")
         result = [{"userID": i[0], "username": i[1]} for i in mycursor.fetchall()]
@@ -312,8 +306,7 @@ def BanchoSettings():
                 return render_template("banchosettings.html", preset=FetchBSData(), title="Bancho Settings", data=DashData(), bsdata=FetchBSData(), session=session, config=UserConfig, error="An internal error has occured while saving bancho settings! An error has been logged to the console.")
 
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 """ 통합 리더보드 """
 @app.route("/frontend/leaderboard")
@@ -495,8 +488,7 @@ def RankMap(id):
                 ConsoleLog(f"Error while ranking beatmap ({id})!", f"{e}", 3)
                 return render_template("beatrank.html", title="Rank Beatmap!", data=DashData(), session=session, beatdata=SplitList(GetBmapInfo(id)), config=UserConfig, error="An internal error has occured while ranking! An error has been logged to the console.", Id= id)
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/rank", methods = ["GET", "POST"])
 def RankFrom():
@@ -504,12 +496,10 @@ def RankFrom():
         if HasPrivilege(session["AccountId"], 3):
             return render_template("rankform.html", title="Rank a beatmap!", data=DashData(), session=session, config=UserConfig, SuggestedBmaps = SplitList(GetSuggestedRank()))
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
     else:
         if not HasPrivilege(session["AccountId"]): #mixing things up eh
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
         else:
             return redirect(f"/rank/{request.form['bmapid']}") #does this even work
 
@@ -948,15 +938,13 @@ def SearchMap(song_query):
 
         return render_template("search_beatmap.html", title="Searched Beatmap!", data=DashData(), session=session, config=UserConfig, song_query = song_query, SuggestedBmaps2 = SplitList(SearchBeatmap(song_query)))
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/rank/search", methods = ["GET", "POST"])
 def SearchMap_Post():
     if request.method == "POST":
         if not HasPrivilege(session["AccountId"]): #mixing things up eh
-                redirect_url = request.url.replace("http", "https")
-                return NoPerm(session, redirect_url)
+                return NoPerm(session, request.url)
         else:
             return redirect(f"/rank/search/{request.form['songname']}") #does this even work
     else:
@@ -999,8 +987,7 @@ def send_ban_mail():
         if HasPrivilege(session["AccountId"]):
             return render_template("sendbanmail.html", title="Send Ban Mail", data=DashData(), session=session, config=UserConfig)
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
     else:
         if HasPrivilege(session["AccountId"]):
             userID = request.form["userid"]
@@ -1010,8 +997,7 @@ def send_ban_mail():
             sendBanMail(session, userID, email, beatmapInfo)
             return render_template("sendbanmail.html", title="Send Ban Mail", data=DashData(), session=session, config=UserConfig, success=f"Successfully Send Ban mail! to {email}")
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
 
 @app.route("/sendemail", methods = ["GET", "POST"])
 def send_mail():
@@ -1019,8 +1005,7 @@ def send_mail():
         if HasPrivilege(session["AccountId"]):
             return render_template("sendemail.html", title="Send Email", data=DashData(), session=session, config=UserConfig)
         else:   
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
     else:
         if HasPrivilege(session["AccountId"]):
             email = request.form["email"] if request.form["nickname"] == "" else f'{request.form["nickname"]} <{request.form["email"]}>'
@@ -1031,20 +1016,23 @@ def send_mail():
             sendEmail(session, email, subject, msg, MIMEType)
             return render_template("sendemail.html", title="Send Email", data=DashData(), session=session, config=UserConfig, success=f"Successfully Send Email! to {email}")
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
 
 
 @app.route("/users/<page>", methods = ["GET", "POST"])
 def Users(page = 1):
     if HasPrivilege(session["AccountId"], 6):
+        mycursor.execute("SELECT privileges, name FROM privileges_groups")
+        privilegesList = mycursor.fetchall()
+        mycursor.execute("SELECT id, name FROM badges")
+        badgesList = mycursor.fetchall()
+
         if request.method == "GET":
-            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FetchUsers(int(page)-1), page=int(page), Pages=UserPageCount())
+            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FetchUsers(int(page)-1), page=int(page), selected=[-1, -1], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
         if request.method == "POST":
-            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FindUserByUsername(request.form["user"], int(page)), page=int(page), User=request.form["user"], Pages=UserPageCount())
+            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FindUserByUsername(request.form["user"], int(page), int(request.form["privilege"]), int(request.form["badge"])), page=int(page), User=request.form["user"], selected=[int(request.form["privilege"]), int(request.form["badge"])], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/index.php")
 def LegacyIndex():
@@ -1072,8 +1060,7 @@ def SystemSettings():
                 ConsoleLog("Error while editing system settings!", f"{e}", 3)
                 return render_template("syssettings.html", data=DashData(), session=session, title="System Settings", SysData=SystemSettingsValues(), config=UserConfig, error = "An internal error has occured while saving system settings! An error has been logged to the console.")
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
 
 @app.route("/user/edit/<id>", methods = ["GET", "POST"])
 def EditUser(id):
@@ -1088,8 +1075,7 @@ def EditUser(id):
         if HasPrivilege(session["AccountId"], 6):
             return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), ShowIPs = HasPrivilege(session["AccountId"], 16))
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
     if request.method == "POST":
         if HasPrivilege(session["AccountId"], 6):
             try:
@@ -1101,8 +1087,7 @@ def EditUser(id):
                 ConsoleLog("Error while editing user!", f"{e}", 3)
                 return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), error="An internal error has occured while editing the user! An error has been logged to the console.", ShowIPs = HasPrivilege(session["AccountId"], 16))
         else:
-            redirect_url = request.url.replace("http", "https")
-            return NoPerm(session, redirect_url)
+            return NoPerm(session, request.url)
 
 
 @app.route("/logs/<page>")
@@ -1110,8 +1095,7 @@ def Logs(page):
     if HasPrivilege(session["AccountId"], 7):
         return render_template("raplogs.html", data=DashData(), session=session, title="Logs", config=UserConfig, Logs = RAPFetch(page), page=int(page), Pages = RapLogCount())
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/action/confirm/delete/<id>")
 def ConfirmDelete(id):
@@ -1122,8 +1106,7 @@ def ConfirmDelete(id):
         AccountToBeDeleted = GetUser(id)
         return render_template("confirm.html", data=DashData(), session=session, title="Confirmation Required", config=UserConfig, action=f"delete the user {AccountToBeDeleted['Username']}", yeslink=f"/actions/delete/{id}", backlink=f"/user/edit/{id}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/user/iplookup/<ip>")
 def IPUsers(ip):
@@ -1132,16 +1115,14 @@ def IPUsers(ip):
         UserLen = len(IPUserLookup)
         return render_template("iplookup.html", data=DashData(), session=session, title="IP Lookup", config=UserConfig, ipusers=IPUserLookup, IPLen = UserLen, ip=ip)
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/badges")
 def Badges():
     if HasPrivilege(session["AccountId"], 4):
         return render_template("badges.html", data=DashData(), session=session, title="Badges", config=UserConfig, badges=GetBadges())
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/badge/edit/<BadgeID>", methods = ["GET", "POST"])
 def EditBadge(BadgeID: int):
@@ -1158,16 +1139,14 @@ def EditBadge(BadgeID: int):
                 ConsoleLog("Error while editing badge!", f"{e}", 3)
                 return render_template("editbadge.html", data=DashData(), session=session, title="Edit Badge", config=UserConfig, badge=GetBadge(BadgeID), error="An internal error has occured while editing the badge! An error has been logged to the console.")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/privileges")
 def EditPrivileges():
     if HasPrivilege(session["AccountId"], 13):
         return render_template("privileges.html", data=DashData(), session=session, title="Privileges", config=UserConfig, privileges=GetPrivileges())
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/privilege/edit/<Privilege>", methods = ["GET", "POST"])
 def EditPrivilege(Privilege: int):
@@ -1186,24 +1165,21 @@ def EditPrivilege(Privilege: int):
                 Priv = GetPriv(Privilege)
                 return render_template("editprivilege.html", data=DashData(), session=session, title="Privileges", config=UserConfig, privileges=Priv, error="An internal error has occured while editing the privileges! An error has been logged to the console.")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/console")
 def Console():
     if HasPrivilege(session["AccountId"], 14):
         return render_template("consolelogs.html", data=DashData(), session=session, title="Console Logs", config=UserConfig, logs=GetLog())
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/changelogs")
 def ChangeLogs():
     if HasPrivilege(session["AccountId"]):
         return render_template("changelog.html", data=DashData(), session=session, title="Change Logs", config=UserConfig, logs=Changelogs)
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/current.json")
 def CurrentIPs():
@@ -1218,6 +1194,7 @@ def CurrentIPs():
         "c5.ppy.sh": UserConfig["CurrentIP"],
         "c6.ppy.sh": UserConfig["CurrentIP"],
         "ce.ppy.sh": UserConfig["CurrentIP"],
+        "b.ppy.sh": UserConfig["CurrentIP"],
         "a.ppy.sh": UserConfig["CurrentIP"],
         "s.ppy.sh": UserConfig["CurrentIP"],
         "i.ppy.sh": UserConfig["CurrentIP"],
@@ -1237,8 +1214,7 @@ def Admins():
     if HasPrivilege(session["AccountId"]):
         return render_template("admins.html", data=DashData(), session=session, title="Admins", config=UserConfig, admins=SplitList(GetStore()))
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 
 @app.route("/changepass/<AccountID>", methods = ["GET", "POST"]) #may change the route to something within /user
@@ -1252,8 +1228,7 @@ def ChangePass(AccountID):
             User = GetUser(int(AccountID))
             return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/donoraward/<AccountID>", methods = ["GET", "POST"])
 def DonorAward(AccountID):
@@ -1267,8 +1242,7 @@ def DonorAward(AccountID):
             RAPLog(session["AccountId"], f"has awarded {User['Username']} ({AccountID}) {request.form['time']} days of donor.")
             return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/donorremove/<AccountID>")
 def RemoveDonorRoute(AccountID):
@@ -1276,8 +1250,7 @@ def RemoveDonorRoute(AccountID):
         RemoveSupporter(AccountID, session)
         return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 
 @app.route("/rankreq/<Page>")
@@ -1285,16 +1258,14 @@ def RankReq(Page):
     if HasPrivilege(session["AccountId"], 3):
         return render_template("rankreq.html", data=DashData(), session=session, title="Ranking Requests", config=UserConfig, RankRequests = GetRankRequests(int(Page)), page = int(Page))
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/clans/<Page>")
 def ClanRoute(Page):
     if HasPrivilege(session["AccountId"], 15):
         return render_template("clansview.html", data=DashData(), session=session, title="Clans", config=UserConfig, page = int(Page), Clans = GetClans(Page), Pages = GetClanPages())
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/clan/<ClanID>", methods = ["GET", "POST"])
 def ClanEditRoute(ClanID):
@@ -1304,24 +1275,21 @@ def ClanEditRoute(ClanID):
         ApplyClanEdit(request.form, session)
         return render_template("editclan.html", data=DashData(), session=session, title="Clans", config=UserConfig, Clan=GetClan(ClanID), Members=SplitList(GetClanMembers(ClanID)), ClanOwner = GetClanOwner(ClanID), success="Clan edited successfully!")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/clan/delete/<ClanID>")
 def ClanFinalDelete(ClanID):
     if HasPrivilege(session["AccountId"], 15):
         NukeClan(ClanID, session)
         return redirect("/clans/1")
-    redirect_url = request.url.replace("http", "https")
-    return NoPerm(session, redirect_url)
+    return NoPerm(session, request.url)
 
 @app.route("/clan/confirmdelete/<ClanID>")
 def ClanDeleteConfirm(ClanID):
     if HasPrivilege(session["AccountId"], 15):
         Clan = GetClan(ClanID)
         return render_template("confirm.html", data=DashData(), session=session, title="Confirmation Required", config=UserConfig, action=f" delete the clan {Clan['Name']}", yeslink=f"/clan/delete/{ClanID}", backlink="/clans/1")
-    redirect_url = request.url.replace("http", "https")
-    return NoPerm(session, redirect_url)
+    return NoPerm(session, request.url)
 
 
 
@@ -1578,8 +1546,7 @@ def StatsRoute():
                 return redirect(f"/u/rx/recent/{user}")
 
         return render_template("stats.html", data=DashData(), session=session, title="Server Statistics", config=UserConfig, StatData = GetStatistics(MinPP), MinPP = MinPP)
-    redirect_url = request.url.replace("http", "https")
-    return NoPerm(session, redirect_url)
+    return NoPerm(session, request.url)
 
 #API for js
 @app.route("/js/pp/<id>")
@@ -1643,8 +1610,7 @@ def Wipe(AccountID: int):
         RAPLog(session["AccountId"], f"has wiped the account {Account['Username']} ({AccountID})")
         return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/wipeap/<AccountID>")
 def WipeAPRoute(AccountID: int):
@@ -1655,8 +1621,7 @@ def WipeAPRoute(AccountID: int):
         RAPLog(session["AccountId"], f"has wiped the autopilot statistics for the account {Account['Username']} ({AccountID})")
         return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/wiperx/<AccountID>")
 def WipeRXRoute(AccountID: int):
@@ -1667,8 +1632,7 @@ def WipeRXRoute(AccountID: int):
         RAPLog(session["AccountId"], f"has wiped the relax statistics for the account {Account['Username']} ({AccountID})")
         return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/wipeva/<AccountID>")
 def WipeVARoute(AccountID: int):
@@ -1679,8 +1643,7 @@ def WipeVARoute(AccountID: int):
         RAPLog(session["AccountId"], f"has wiped the vanilla statistics for the account {Account['Username']} ({AccountID})")
         return redirect(f"/user/edit/{AccountID}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/restrict/<id>")
 def Restrict(id: int):
@@ -1693,8 +1656,7 @@ def Restrict(id: int):
             RAPLog(session["AccountId"], f"has unrestricted the account {Account['Username']} ({id})")
         return redirect(f"/user/edit/{id}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/freeze/<id>")
 def Freezee(id: int):
@@ -1704,8 +1666,7 @@ def Freezee(id: int):
         RAPLog(session["AccountId"], f"has frozen the account {Account['Username']} ({id})")
         return redirect(f"/user/edit/{id}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/ban/<id>")
 def Ban(id: int):
@@ -1718,8 +1679,7 @@ def Ban(id: int):
             RAPLog(session["AccountId"], f"has unbanned the account {Account['Username']} ({id})")
         return redirect(f"/user/edit/{id}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 @app.route("/actions/hwid/<id>")
 def HWID(id: int):
     """Clear HWID matches."""
@@ -1729,8 +1689,7 @@ def HWID(id: int):
         RAPLog(session["AccountId"], f"has cleared the HWID matches for the account {Account['Username']} ({id})")
         return redirect(f"/user/edit/{id}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 @app.route("/actions/delete/<id>")
 def DeleteAcc(id: int):
     """Account goes bye bye forever."""
@@ -1740,8 +1699,7 @@ def DeleteAcc(id: int):
         RAPLog(session["AccountId"], f"has deleted the account {AccountToBeDeleted['Username']} ({id})")
         return redirect("/users/1")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 @app.route("/actions/kick/<id>")
 def KickFromBancho(id: int):
     """Kick from bancho"""
@@ -1751,8 +1709,7 @@ def KickFromBancho(id: int):
         RAPLog(session["AccountId"], f"has kicked the account {Account['Username']} ({id})")
         return redirect(f"/user/edit/{id}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/deletebadge/<id>")
 def BadgeDeath(id:int):
@@ -1761,8 +1718,7 @@ def BadgeDeath(id:int):
         RAPLog(session["AccountId"], f"deleted the badge with the ID of {id}")
         return redirect(url_for("Badges"))
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/createbadge")
 def CreateBadgeAction():
@@ -1771,8 +1727,7 @@ def CreateBadgeAction():
         RAPLog(session["AccountId"], f"Created a badge with the ID of {Badge}")
         return redirect(f"/badge/edit/{Badge}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/actions/createprivilege")
 def CreatePrivilegeAction():
@@ -1780,8 +1735,7 @@ def CreatePrivilegeAction():
         PrivID = CreatePrivilege()
         RAPLog(session["AccountId"], f"Created a new privilege group with the ID of {PrivID}")
         return redirect(f"/privilege/edit/{PrivID}")
-    redirect_url = request.url.replace("http", "https")
-    return NoPerm(session, redirect_url)
+    return NoPerm(session, request.url)
 
 @app.route("/actions/deletepriv/<PrivID>")
 def PrivDeath(PrivID:int):
@@ -1791,8 +1745,7 @@ def PrivDeath(PrivID:int):
         RAPLog(session["AccountId"], f"deleted the privilege {PrivData['Name']} ({PrivData['Id']})")
         return redirect(url_for("EditPrivileges"))
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 
 #beatmaps.rankedby 변경함수
@@ -1836,8 +1789,7 @@ def RankSet(BeatmapSet: int):
 
         return redirect(f"/rank/{bsid_to_bid(BeatmapSet)}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 #Approved 추가
 @app.route("/action/approvedset/<BeatmapSet>")
@@ -1851,8 +1803,7 @@ def ApprovedSet(BeatmapSet: int):
 
         return redirect(f"/rank/{bsid_to_bid(BeatmapSet)}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/action/loveset/<BeatmapSet>")
 def LoveSet(BeatmapSet: int):
@@ -1865,8 +1816,7 @@ def LoveSet(BeatmapSet: int):
 
         return redirect(f"/rank/{bsid_to_bid(BeatmapSet)}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 #Qualified 추가
 @app.route("/action/qualifiedset/<BeatmapSet>")
@@ -1880,8 +1830,7 @@ def QualifiedSet(BeatmapSet: int):
 
         return redirect(f"/rank/{bsid_to_bid(BeatmapSet)}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/action/unrankset/<BeatmapSet>")
 def UnrankSet(BeatmapSet: int):
@@ -1894,8 +1843,7 @@ def UnrankSet(BeatmapSet: int):
 
         return redirect(f"/rank/{bsid_to_bid(BeatmapSet)}")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/action/deleterankreq/<ReqID>")
 def MarkRequestAsDone(ReqID):
@@ -1903,16 +1851,14 @@ def MarkRequestAsDone(ReqID):
         DeleteBmapReq(ReqID)
         return redirect("/rankreq/1")
     else:
-        redirect_url = request.url.replace("http", "https")
-        return NoPerm(session, redirect_url)
+        return NoPerm(session, request.url)
 
 @app.route("/action/kickclan/<AccountID>")
 def KickClanRoute(AccountID):
     if HasPrivilege(session["AccountId"], 15):
         KickFromClan(AccountID)
         return redirect("/clans/1")
-    redirect_url = request.url.replace("http", "https")
-    return NoPerm(session, redirect_url)
+    return NoPerm(session, request.url)
 
 #error handlers
 @app.errorhandler(404)
