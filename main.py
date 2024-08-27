@@ -1028,9 +1028,9 @@ def Users(page = 1):
         badgesList = mycursor.fetchall()
 
         if request.method == "GET":
-            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FetchUsers(int(page)-1), page=int(page), selected=[-1, -1], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
+            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FetchUsers(int(page)-1), page=int(page), selected=[-1, -1, -1], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
         if request.method == "POST":
-            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FindUserByUsername(request.form["user"], int(page), int(request.form["privilege"]), int(request.form["badge"])), page=int(page), User=request.form["user"], selected=[int(request.form["privilege"]), int(request.form["badge"])], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
+            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FindUserByUsername(request.form["user"], int(page), int(request.form["privilege"]), int(request.form["badge"]), request.form["country"]), page=int(page), User=request.form["user"], selected=[int(request.form["privilege"]), int(request.form["badge"]), request.form["country"]], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
     else:
         return NoPerm(session, request.url)
 

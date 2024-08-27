@@ -12,32 +12,28 @@
                 <input type="text" class="form-control" name="user" placeholder="Username or Email" value="{{ User }}">
 
                 <label>Privilege</label>
-                <select name="privilege" id="" class="form-control">
+                <select name="privilege" class="form-control">
                     <option selected value="-1">=== None ===</option>
                     {% for option in privilegesList %}
                         <option value="{{ option[0] }}" {% if option[0] == selected[0] %}selected{% endif %}>
                             {{ option[1] }}
                         </option>
                     {% endfor %}
-
-                    <!-- <option selected value="-1">None</option>
-                    <option value="0">Banned</option>
-                    <option value="267">BAT</option> -->
                 </select>
 
                 <label>Badges</label>
-                <select name="badge" id="" class="form-control">
+                <select name="badge" class="form-control">
                     <option selected value="-1">=== None ===</option>
                     {% for option in badgesList %}
                         <option value="{{ option[0] }}" {% if option[0] == selected[1] %}selected{% endif %}>
                             {{ option[1] }}
                         </option>
                     {% endfor %}
-
-                    <!-- <option selected value="-1">None</option>
-                    <option value="1015">beta</option>
-                    <option value="1016">alpha</option> -->
                 </select>
+
+                <label>Country</label>
+                {% include 'countryselect.html' %}
+                <script>document.getElementById("countryselect").value = "{{ selected[2] }}"</script>
             </div>
             <button class="btn btn-success" type="submit" name="">Search</button>
         </form>
