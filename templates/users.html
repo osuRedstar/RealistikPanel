@@ -15,7 +15,7 @@
                 <select name="privilege" class="form-control">
                     <option selected value="-1">=== None ===</option>
                     {% for option in privilegesList %}
-                        <option value="{{ option[0] }}" {% if option[0] == selected[0] %}selected{% endif %}>
+                        <option value="{{ option[0] }}" {% if option[0] == selected[1] %}selected{% endif %}>
                             {{ option[1] }}
                         </option>
                     {% endfor %}
@@ -25,7 +25,7 @@
                 <select name="badge" class="form-control">
                     <option selected value="-1">=== None ===</option>
                     {% for option in badgesList %}
-                        <option value="{{ option[0] }}" {% if option[0] == selected[1] %}selected{% endif %}>
+                        <option value="{{ option[0] }}" {% if option[0] == selected[2] %}selected{% endif %}>
                             {{ option[1] }}
                         </option>
                     {% endfor %}
@@ -33,7 +33,7 @@
 
                 <label>Country</label>
                 {% include 'countryselect.html' %}
-                <script>document.getElementById("countryselect").value = "{{ selected[2] }}"</script>
+                <script>document.getElementById("countryselect").value = "{{ selected[3] }}"</script>
             </div>
             <button class="btn btn-success" type="submit" name="">Search</button>
         </form>

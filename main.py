@@ -21,7 +21,7 @@ ConsoleLog(f"RealistikPanel (Build {GetBuild()}) started!")
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24) #encrypts the session cookie
-app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1) #ProxyFix 미들웨어 추가
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2 if UserConfig["UseCloudFlareProxy"] else 1, x_proto=1, x_host=1, x_port=1, x_prefix=1) #ProxyFix 미들웨어 추가
 
 class NoPingFilter(logging.Filter):
     def filter(self, record):
@@ -33,14 +33,8 @@ ServerDomain = UserConfig["ServerURL"].replace("https://", "").replace("/", "")
 
 @app.route("/")
 def home():
-    redirect_url = request.args.get("redirect_url")
-    if redirect_url is None:
-        redirect_url = url_for("dash")
-
-    if session["LoggedIn"]:
-        return redirect(redirect_url)
-    else:
-        return redirect(url_for("login"))
+    if session["LoggedIn"]: return redirect(url_for("dash"))
+    else: return redirect(url_for("login"))
 
 @app.route("/dash/")
 def dash():
@@ -214,10 +208,7 @@ def status():
 @app.route("/login", methods = ["GET", "POST"])
 def login():
     redirect_url = request.args.get("redirect_url")
-    if redirect_url is None:
-        redirect_url = url_for("home")
-    else:
-        redirect_url = f"https://admin.{ServerDomain}/?redirect_url={redirect_url}"
+    if redirect_url is None: redirect_url = url_for("home")
 
     if not session["LoggedIn"] and not HasPrivilege(session["AccountId"]):
         if request.method == "GET":
@@ -232,8 +223,7 @@ def login():
                 for key in list(SessionToApply.keys()):
                     session[key] = SessionToApply[key]
                 return redirect(redirect_url)
-    else:
-        return redirect(url_for("dash"))
+    else: return redirect(url_for("dash"))
 
 @app.route("/logout")
 def logout():
@@ -1028,9 +1018,21 @@ def Users(page = 1):
         badgesList = mycursor.fetchall()
 
         if request.method == "GET":
-            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FetchUsers(int(page)-1), page=int(page), selected=[-1, -1, -1], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
+            selected = session.get("selected", ["", -1, -1, "-1"])
+            UserData = FindUserByUsername(selected[0], int(page), selected)
+            #return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FetchUsers(int(page)-1), page=int(page), selected=selected, privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount(selected))
+            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData=UserData, page=int(page), selected=selected, privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount(selected))       
         if request.method == "POST":
-            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FindUserByUsername(request.form["user"], int(page), int(request.form["privilege"]), int(request.form["badge"]), request.form["country"]), page=int(page), User=request.form["user"], selected=[int(request.form["privilege"]), int(request.form["badge"]), request.form["country"]], privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
+            session["selected"] = [ #사용자 선택 값을 세션에 저장
+                str(request.form.get("user", "")),
+                int(request.form.get("privilege", -1)),
+                int(request.form.get("badge", -1)),
+                str(request.form.get("country", "-1"))
+            ]
+            selected = session.get("selected")
+            UserData = FindUserByUsername(selected[0], int(page), selected)
+            #return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData = FindUserByUsername(request.form["user"], int(page), int(request.form["privilege"]), int(request.form["badge"]), request.form["country"]), page=int(page), User=request.form["user"], selected=session.get('selected', [-1, -1, -1]), privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount())
+            return render_template("users.html", title="Users", data=DashData(), session=session, config=UserConfig, UserData=UserData, page=int(page), User=request.form["user"], selected=selected, privilegesList=privilegesList, badgesList=badgesList, Pages=UserPageCount(selected))
     else:
         return NoPerm(session, request.url)
 

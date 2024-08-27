@@ -928,7 +928,7 @@ def FetchUsers(page = 0):
         else:
             Dict["Allowed"] = False
         Users.append(Dict)
-    
+
     return Users
 
 def GetUser(id):
@@ -2163,12 +2163,15 @@ def SetBMAPSetStatus(BeatmapSet: int, Staus: int, session):
     FokaMessage(params)
 
 
-def FindUserByUsername(User: str, Page: int, privilege = -1, badge = -1, country = "-1"):
+def FindUserByUsername(User: str, Page: int, filterUsers: list=None):
     """Finds user by their username OR email."""
-    privilege = f"and privileges = {privilege} " if privilege != -1 else ""
-    badge = f"and u.id IN (SELECT ub.user FROM user_badges ub WHERE ub.badge = {badge}) " if badge != -1 else ""
-    country = f"and u.id IN (SELECT us.id FROM users_stats us WHERE us.country = '{country}') " if country != "-1" else ""
-    pbc = privilege+badge+country
+    if filterUsers and type(filterUsers) is list:
+        User, privilege, badge, country = filterUsers
+        privilege = f"and privileges = {privilege} " if privilege != -1 else ""
+        badge = f"and u.id IN (SELECT ub.user FROM user_badges ub WHERE ub.badge = {badge}) " if badge != -1 else ""
+        country = f"and u.id IN (SELECT us.id FROM users_stats us WHERE us.country = '{country}') " if country != "-1" else ""
+        pbc = privilege+badge+country
+    else: pbc = ""
 
     #calculating page offsets
     Offset = UserConfig["PageSize"] * (Page - 1)
@@ -2222,7 +2225,7 @@ def FindUserByUsername(User: str, Page: int, privilege = -1, badge = -1, country
             else:
                 Dict["Allowed"] = False
             TheUsersDict.append(Dict)
-        
+
         return TheUsersDict
     else:
         return []
@@ -2385,11 +2388,26 @@ def DeleteBmapReq(Req):
     mycursor.execute("DELETE FROM rank_requests WHERE id = %s LIMIT 1", (Req,))
     mydb.commit()
 
-def UserPageCount():
+def UserPageCount(filterUsers: list=None):
     """Gets the amount of pages for users."""
-    #i made it separate, fite me
-    mycursor.execute("SELECT count(*) FROM users")
-    TheNumber = mycursor.fetchone()[0]
+    if filterUsers and type(filterUsers) is list:
+        User, privilege, badge, country = filterUsers
+        privilege = f"and privileges = {privilege} " if privilege != -1 else ""
+        badge = f"and u.id IN (SELECT ub.user FROM user_badges ub WHERE ub.badge = {badge}) " if badge != -1 else ""
+        country = f"and u.id IN (SELECT us.id FROM users_stats us WHERE us.country = '{country}') " if country != "-1" else ""
+        pbc = privilege+badge+country
+
+        Split = User.split("@") #checking if its an email
+        if len(Split) == 2 and "." in Split[1]: #if its an email, 2nd check makes sure its an email and not someone trying to be A E S T H E T I C
+            mycursor.execute(f"SELECT count(*) FROM users u WHERE u.email LIKE %s {pbc}", (User,)) #i will keep the like statement unless it causes issues
+        else: #its a username
+            User = f"%{User}%" #for sql to treat is as substring
+            mycursor.execute(f"SELECT count(*) FROM users u WHERE u.username LIKE %s {pbc}", (User,))
+        TheNumber = mycursor.fetchone()[0]
+    else:
+        #i made it separate, fite me
+        mycursor.execute("SELECT count(*) FROM users")
+        TheNumber = mycursor.fetchone()[0]
     #working with page number (this is a mess...)
     TheNumber /= UserConfig["PageSize"]
     #if not single digit, round up

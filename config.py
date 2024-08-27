@@ -5,6 +5,7 @@ from colorama import init, Fore
 from base64 import b64encode
 init() #Colorama thing
 DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
+    "UseCloudFlareProxy": True,
     "Port" : 1337,
     #SQL Info
     "SQLHost" : "127.0.0.1",
