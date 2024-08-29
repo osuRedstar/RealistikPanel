@@ -939,7 +939,14 @@ def SearchMap_Post():
             return redirect(f"/rank/search/{request.form['songname']}") #does this even work
     else:
         return redirect(f"/rank")
-    
+
+@app.route("/banmailtemple")
+def banmailTemplates():
+    username = request.args.get("username", "Devlant")
+    beatmapInfo = json.loads(request.args.get("beatmapInfo", {"bid": 0, "beatmapInfo": None}))
+    country = request.args.get("country", "XX")
+    return banEmailBody(country, username, beatmapInfo)
+
 @app.route("/sendautobanmail", methods = ["GET", "POST"])
 def send_auto_ban_mail():
     userID = request.args.get("uid")
