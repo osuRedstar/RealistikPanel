@@ -2770,6 +2770,7 @@ def cache_clan(user_id: int) -> None:
     r.publish("rosu:clan_update", str(user_id))
 
 def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
+    sess = session.copy()
     sc = 200
     # SMTP 서버에 연결 및 이메일 전송
     try:
@@ -2799,9 +2800,9 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
     # 디코 웹훅 전송
     try:
         if sc != 200: raise sc
-        if not session["LoggedIn"] or session["AccountId"] == 0 or session["AccountName"] == "" or session["Privilege"] == 0:
-            session["AccountId"] = 999
-            session["AccountName"] = "Devlant"
+        if not sess["LoggedIn"] or sess["AccountId"] == 0 or sess["AccountName"] == "" or sess["Privilege"] == 0:
+            sess["AccountId"] = 999
+            sess["AccountName"] = "Devlant"
 
         if type == "AutoBan" or type == "Ban":
             origin = msg.as_string()
@@ -2811,7 +2812,7 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
 
         webhook = DiscordWebhook(url=UserConfig["AdminLogWebhook"])
         embed = DiscordEmbed(description=msg, color=242424)
-        embed.set_author(name=f"{session['AccountName']} Sent {type} email", url=f"{UserConfig['ServerURL']}u/{session['AccountId']}", icon_url=f"{UserConfig['AvatarServer']}999")
+        embed.set_author(name=f"{sess['AccountName']} Sent {type} email", url=f"{UserConfig['ServerURL']}u/{sess['AccountId']}", icon_url=f"{UserConfig['AvatarServer']}999")
         embed.set_footer(text="via RealistikPanel!")
         webhook.add_embed(embed)
         webhook.execute()
