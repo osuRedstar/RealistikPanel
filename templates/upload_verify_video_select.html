@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-title">Upload Verify Video Select</h2>
+<p class="section-lead">Select Upload or View.</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Select!</h4>
+    </div>
+    <div class="card-body">
+        <div id="dt" class="form-group">
+            <button class="btn btn-primary mr-1" type="submit" id="upload">Go To Upload</button>
+            <br><br>
+            <label>UserID</label>
+            <input type="text" class="form-control" id="search" placeholder="999" required>
+            <button class="btn btn-primary mr-1" type="submit" id="view">Go To View</button>
+        </div>
+        <script>
+            document.getElementById("upload").addEventListener("click", function(ev) {
+                window.location.href = `${window.location.pathname}?upload`
+            })
+
+            document.getElementById("view").addEventListener("click", function(ev) {
+                window.location.href = `${window.location.pathname}?view=${document.getElementById("search").value}`
+            })
+        </script>
+    </div>
+    <div class="card-footer">
+        RealistikPanel!
+    </div>
+</div>
+{% endblock %}

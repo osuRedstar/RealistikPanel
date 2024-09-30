@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="section-title">Upload Verify Video</h2>
+<p class="section-lead">Upload Your Video.</p>
+<div class="card">
+    <div class="card-header">
+        <h4>Upload Verify Video!</h4>
+    </div>
+    <div class="card-body">
+        <form id="uploadForm" action="/upload_verify_video" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>UserID</label>
+                <input type="text" class="form-control" name="ID" placeholder="999" required>
+                <label>File</label>
+                <input type="file" name="File" class="form-control" accept="video/*" required>
+            </div>
+            <button class="btn btn-primary mr-1" type="submit" name="">Send</button>
+        </form>
+        <div id="progressContainer" style="display:none;">
+            <p>Uploading: <span id="progressText">0%</span></p>
+            <progress id="progressBar" value="0" max="100"></progress>
+        </div>
+    </div>
+    <div class="card-footer">
+        RealistikPanel!
+    </div>
+</div>
+
+<script>
+    document.getElementById('uploadForm').addEventListener('submit', function(event) {
+        event.preventDefault(); //기본 제출 방지
+        var formData = new FormData(this);
+        var xhr = new XMLHttpRequest();
+        xhr.upload.addEventListener('progress', function(event) {
+            if (event.lengthComputable) {
+                var percentComplete = Math.round((event.loaded / event.total) * 100);
+                document.getElementById('progressContainer').style.display = 'block';
+                document.getElementById('progressBar').value = percentComplete;
+                document.getElementById('progressText').textContent = percentComplete + '%';
+            }
+        });
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                // 업로드 완료 후 작업
+                window.location.href = '/upload_verify_video?view=' + new URLSearchParams(new FormData(document.getElementById('uploadForm'))).get('ID');
+            } else {
+                // 업로드 실패 처리
+                alert('Upload failed. Please try again.');
+            }
+        });
+        xhr.open('POST', '/upload_verify_video');
+        xhr.send(formData);
+    });
+</script>
+{% endblock %}

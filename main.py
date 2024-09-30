@@ -1,5 +1,5 @@
 #This file is responsible for running the web server and (mostly nothing else)
-from flask import Flask, render_template, session, redirect, url_for, request, send_from_directory, jsonify, Response
+from flask import Flask, render_template, session, redirect, url_for, request, send_file, jsonify, Response
 from werkzeug.middleware.proxy_fix import ProxyFix
 from defaults import *
 from config import UserConfig
@@ -696,8 +696,7 @@ def pw_reset(id):
 
     mycursor.execute(f"SELECT id, k, u, t FROM password_recovery WHERE u = '{username}' AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1")
     info = mycursor.fetchone()
-    if info is None:
-        noRecoveryData = True
+    if info is None: noRecoveryData = True
     else:
         noRecoveryData = False
         exfireDate = int(info[3].timestamp()) + 300
@@ -728,7 +727,6 @@ def pw_reset(id):
                 </body>
                 </html>
             """
-
             return html
 
     if request.method == "GET":
@@ -939,6 +937,45 @@ def SearchMap_Post():
             return redirect(f"/rank/search/{request.form['songname']}") #does this even work
     else:
         return redirect(f"/rank")
+
+@app.route("/upload_verify_video", methods = ["GET", "POST"])
+def uploadVerifyVideo():
+    if not os.path.exists("verifyVideos"): os.makedirs("verifyVideos")
+    isupload = request.args.get("upload",  False)
+    isview = request.args.get("view",  False)
+    if request.method == "POST":
+        ID = request.form.get("ID", None)
+        file = request.files.get("File", None)
+        mycursor.execute(f"SELECT username FROM users WHERE id = {ID}")
+        username = mycursor.fetchone()[0]
+        file.save(f"verifyVideos/{username}({ID})-{round(time.time())}.{file.filename.split('.')[-1]}")
+        RAPLog(ID, f"has Upload Verify Video {UserConfig['ServerURL'].replace('://', '://admin.')}upload_verify_video?view={ID}")
+        return redirect(url_for("uploadVerifyVideo", view=ID))
+    else:
+        if type(isupload) is str: return render_template("upload_verify_video.html", title="upload verify video", data=DashData(), session=session, config=UserConfig)
+        elif type(isview) is str and isview:
+            mycursor.execute(f"SELECT username FROM users WHERE id = {isview}")
+            username = mycursor.fetchone()[0]
+            video = sorted([i for i in os.listdir("verifyVideos") if i.startswith(f"{username}({isview})")], key=lambda x: int(x.split('-')[1].split('.')[0]), reverse=True)
+            
+            if not video: return NotFoundError(None)
+
+            if request.headers.get('Range', None): Range = request.headers.get('Range').replace("bytes=", "").split("-")
+            else: Range = ["0", ""]
+            fileSize = os.path.getsize(f"verifyVideos/{video[0]}")
+            start = int(Range[0])
+            end = fileSize - 1 if not Range[1] else int(Range[1])
+            contentLength = end - start + 1
+
+            with open(f"verifyVideos/{video[0]}", "rb") as f:
+                f.seek(start)
+                file = f.read(contentLength) if start != 0 or (start == 0 and Range[1]) else f.read()
+            response = Response(file, status=206, mimetype='video/mp4')
+            response.headers['Accept-Ranges'] = "bytes"
+            response.headers['Content-Range'] = f'bytes {start}-{end}/{fileSize}'
+            response.headers['Content-Length'] = contentLength
+            return response
+        else: return render_template("upload_verify_video_select.html", title="upload verify video select", data=DashData(), session=session, config=UserConfig)
 
 @app.route("/banmailtemple")
 def banmailTemplates():
