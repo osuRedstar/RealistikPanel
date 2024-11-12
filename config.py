@@ -27,12 +27,12 @@ DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
     "BeatmapMirror" : "https://proxy.nerinyan.moe/",
     "IpLookup" : "https://ip.zxq.co/",
     "HasRelax" : True,
-    "HasAutopilot" : False,
+    "HasAutopilot" : True,
     "AvatarDir" : "/mnt/b/redstar/avatar-server/avatar",
-    "Webhook-std": "",
-    "Webhook-mania": "",
+    "Webhook-std": "", #Discord webhook for posting newly ranked maps
+    "Webhook-taiko": "",
     "Webhook-ctb": "",
-    "Webhook-taiko": "", #Discord webhook for posting newly ranked maps
+    "Webhook-mania": "",
     #Recaptcha v2 for the login page
     "UseRecaptcha" : False,
     "RecaptchaSecret" : "",
