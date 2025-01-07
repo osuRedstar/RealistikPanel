@@ -589,7 +589,6 @@ def frontend_rankRequest_setQualified(type, bid):
             mycursor.execute("UPDATE beatmaps SET ranked_status_freezed = 1 WHERE beatmapset_id = %s", (BeatmapSet,))
             mydb.commit()
             log.info("럽드 ranked_status_freezed 1로 변경")
-
         else:
             log.warning("퀄파로 변경중 언랭크가 아닌 값을 발견함")
     except:
@@ -597,7 +596,6 @@ def frontend_rankRequest_setQualified(type, bid):
         log.debug("requestby_id = {}".format(requestby_id))
         log.debug("requestby_username = {}".format(requestby_username))
         log.debug("is_unranked = {}".format(is_unranked))
-        
         return "ERROR: 리퀘요청자 가져오기 + 퀄파 변경록 작업 실패"
 
     try:
@@ -605,8 +603,8 @@ def frontend_rankRequest_setQualified(type, bid):
         MapData = mycursor.fetchone()
         #Getting bmap name without diff
         BmapName = MapData[0].split("[")[0].rstrip() #¯\_(ツ)_/¯ might work
-        
-        URL = "https://discord.com/api/webhooks/1076661302979739678/5e7n8ZJSjPHlzFVjvVdu4Fi2LuxgKVz6mYtVwlasGjYHuelOLVLhSredSxim6246vADH"
+
+        URL = UserConfig["Webhook-rankreq"]
         webhook = DiscordWebhook(url=URL)
         embed = DiscordEmbed(description=f"Status Changed by Devlant. <@&904084069413965944>\nRequested by {requestby_username} ({requestby_id})", color=242424) #this is giving me discord.py vibes
         embed.set_author(name=f"{BmapName} was just Qualified. (Beatmap_Set)", url=f"https://admin.{ServerDomain}/rank/{MapData[1]}", icon_url=f"https://a.{ServerDomain}/999") #will rank to random diff but yea
@@ -617,7 +615,6 @@ def frontend_rankRequest_setQualified(type, bid):
         webhook.add_embed(embed)
         print(" * Posting webhook!")
         webhook.execute()
-
 
         ingamemsg = f"[{UserConfig['ServerURL']}u/999 Devlant] Qualified the map_set [https://osu.{ServerDomain}/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
         params = {"k": UserConfig['FokaKey'], "to": "#ranked", "msg": ingamemsg}
