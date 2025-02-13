@@ -41,7 +41,7 @@
             }
         });
         xhr.addEventListener('load', function() {
-            if (xhr.status === 200) {
+            if (xhr.status === 206) {
                 // 업로드 완료 후 작업
                 window.location.href = '/upload_verify_video?view=' + new URLSearchParams(new FormData(document.getElementById('uploadForm'))).get('ID');
             } else {
