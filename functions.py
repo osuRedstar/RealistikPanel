@@ -2883,10 +2883,10 @@ def sendPwresetMail(session, userID):
 
     return key
 
-def banEmailBody(country, username, beatmapInfo):
+def banEmailBody(userID, username, country, beatmapInfo):
     #765 MILLION ALLSTARS - UNION!! [We are all MILLION!!] +TD(NV), HD, HR, DT, RX (100.0%)
     temple = "US" if country != "KR" and country != "KP" and country != "JP" else country
-    with open(f"templates/autobanmail/{temple}.html", "r", encoding="utf-8") as f: body = f.read().format(username=username, BI_bid=beatmapInfo["bid"], BI_beatmapInfo=beatmapInfo["beatmapInfo"], country=country)
+    with open(f"templates/autobanmail/{temple}.html", "r", encoding="utf-8") as f: body = f.read().format(userID=userID ,username=username, BI_bid=beatmapInfo["bid"], BI_beatmapInfo=beatmapInfo["beatmapInfo"], country=country)
     return body
 
 def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
@@ -2901,7 +2901,7 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
 
     # 이메일 메시지 설정
     subject = f"{username}, Your Account's Status is Changed"
-    body = banEmailBody(country, username, beatmapInfo)
+    body = banEmailBody(userID, username, country, beatmapInfo)
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
@@ -2934,7 +2934,7 @@ def sendBanMail(session, userID, to_email, beatmapInfo):
 
     # 이메일 메시지 설정
     subject = f"{username}, Your Account's Status is Banned"
-    body = banEmailBody(country, username, beatmapInfo)
+    body = banEmailBody(userID, username, country, beatmapInfo)
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
