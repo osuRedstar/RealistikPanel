@@ -22,6 +22,7 @@ import smtplib
 import imaplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.header import Header
 import string
 import random
 
@@ -2781,8 +2782,7 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
         log.info(f"{type} 이메일 전송 성공")
     except Exception as e:
         #SMTPDataError(code, resp), smtplib.SMTPDataError
-        log.error(f"{type} 이메일 전송 실패 : {e}")
-        sc = e
+        log.error(f"{type} 이메일 전송 실패 : {e}"); sc = e
 
     # 보낸메일함에 복사
     try:
@@ -2791,18 +2791,14 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
             imap.login(sender_email, sender_password)
             imap.append("Sent", None, None, msg.as_bytes())
             log.info("보낸메일함 복사 성공!")
-        else:
-            log.warning("메일 전송 실패함에 따라 보낸메일함 복사는 하지 않음")
-    except Exception as e:
-        log.error(f"보낸메일함 복사 실패 : {e}")
-        sc = e
+        else: log.warning("메일 전송 실패함에 따라 보낸메일함 복사는 하지 않음")
+    except Exception as e: log.error(f"보낸메일함 복사 실패 : {e}"); sc = e
 
     # 디코 웹훅 전송
     try:
         if sc != 200: raise sc
         if not sess["LoggedIn"] or sess["AccountId"] == 0 or sess["AccountName"] == "" or sess["Privilege"] == 0:
-            sess["AccountId"] = 999
-            sess["AccountName"] = "Devlant"
+            sess["AccountId"] = 999; sess["AccountName"] = "Devlant"
 
         if type == "AutoBan" or type == "Ban":
             origin = msg.as_string()
@@ -2824,63 +2820,52 @@ def sendUsernameresetMail(session, userID):
     mycursor.execute(f"SELECT username, email FROM users WHERE id = {userID}")
     username, to_email = mycursor.fetchone()
 
-    key = "" 
-    for i in range(16):
-        key += random.choice(string.ascii_letters + string.digits) # 랜덤한 문자열 하나 선택
+    key = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
     r.set(f"RealistikPanel:UsernameResetMailAuthKey:{userID}", key, 300)
 
-    # 보내는 사람 이메일 계정 정보
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
 
-    # 이메일 메시지 설정
     subject = f"{username}'s username Change KEY"
     body = key
 
     msg = MIMEMultipart()
-    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = f"{username} <{to_email}>"
+    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'
+    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
     mS = mailSend(session, sender_email, sender_password, to_email, msg, type="Username reset")
-    if mS != 200:
-        r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{userID}")
-        key = mS
-
+    if mS != 200: r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{userID}"); key = mS
     return key
 
 def sendPwresetMail(session, userID):
     mycursor.execute(f"SELECT username, email FROM users WHERE id = {userID}")
     username, to_email = mycursor.fetchone()
 
-    key = "" 
-    for i in range(16) :
-        key += random.choice(string.ascii_letters + string.digits) # 랜덤한 문자열 하나 선택
+    key = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
 
     mycursor.execute(f"INSERT INTO password_recovery (id, k, u, t) VALUES (NULL, 'Realistik Panel : {key}', '{username}', NULL)")
     mydb.commit()
 
-    # 보내는 사람 이메일 계정 정보
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
 
-    # 이메일 메시지 설정
     subject = f"{username}'s password Recovery KEY"
     body = key
 
     msg = MIMEMultipart()
-    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = f"{username} <{to_email}>"
+    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'
+    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
     mS = mailSend(session, sender_email, sender_password, to_email, msg, type="Pwreset")
     if mS != 200:
         mycursor.execute(f"DELETE FROM password_recovery WHERE k = 'Realistik Panel : {key}' AND u = '{username}'")
-        mydb.commit()
-        key = mS
-
+        mydb.commit(); key = mS
     return key
 
 def banEmailBody(userID, username, country, beatmapInfo):
@@ -2895,31 +2880,24 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
     username = result[0]
     country = result[1].upper()
 
-    # 보내는 사람 이메일 계정 정보
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
 
-    # 이메일 메시지 설정
     subject = f"{username}, Your Account's Status is Changed"
     body = banEmailBody(userID, username, country, beatmapInfo)
 
     msg = MIMEMultipart()
-    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = f"{username} <{to_email}>"
+    msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'
+    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
 
     #DashData()
-    try:
-        AuthKeyCheck = r.get(f"RealistikPanel:AutoBanMailAuthKey:{userID}").decode("utf-8")
-    except:
-        return 404
-
-    if AuthKey == AuthKeyCheck:
-        r.delete(f"RealistikPanel:AutoBanMailAuthKey:{userID}")
-    else:
-        return 403
-
+    try: AuthKeyCheck = r.get(f"RealistikPanel:AutoBanMailAuthKey:{userID}").decode("utf-8")
+    except: return 404
+    if AuthKey == AuthKeyCheck: r.delete(f"RealistikPanel:AutoBanMailAuthKey:{userID}")
+    else: return 403
     return mailSend(session, sender_email, sender_password, to_email, msg, type="AutoBan")
 
 def sendBanMail(session, userID, to_email, beatmapInfo):
@@ -2928,36 +2906,31 @@ def sendBanMail(session, userID, to_email, beatmapInfo):
     username = result[0]
     country = result[1].upper()
 
-    # 보내는 사람 이메일 계정 정보
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
 
-    # 이메일 메시지 설정
     subject = f"{username}, Your Account's Status is Banned"
     body = banEmailBody(userID, username, country, beatmapInfo)
 
     msg = MIMEMultipart()
-    msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = f"{username} <{to_email}>"
+    msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'
+    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
-
     return mailSend(session, sender_email, sender_password, to_email, msg, type="Ban")
 
-def sendEmail(session, to_email, subject, msg, MIMEType):
-
-    # 보내는 사람 이메일 계정 정보
+def sendEmail(session, nick, to_email, subject, msg, MIMEType):
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
 
-    # 이메일 메시지 설정
     subject = subject
     body = msg
 
     msg = MIMEMultipart()
-    msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'  # 별명을 추가한 부분
-    msg['To'] = to_email
+    msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'
+    if nick and not nick.isascii(): nick = str(Header(nick, 'utf-8').encode())
+    msg['To'] = f"{nick} <{to_email}>" if nick else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, MIMEType))
-
     return mailSend(session, sender_email, sender_password, to_email, msg, type="")
