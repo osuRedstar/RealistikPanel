@@ -945,29 +945,40 @@ def uploadVerifyVideo():
         file = request.files.get("File", None)
         mycursor.execute(f"SELECT username FROM users WHERE id = {ID}")
         username = mycursor.fetchone()[0]
+
+        ALLOWED_EXTENSIONS = {"avi", "mp4", "ogv", "ts", "webm", "flv", "wmv", "mkv"}
+        if file.filename.split(".")[-1].lower() not in ALLOWED_EXTENSIONS:
+            return f"Invalid file type. Only video files are allowed.\n{ALLOWED_EXTENSIONS}", 400
+        video = sorted([i for i in os.listdir("verifyVideos") if i.startswith(f"{username}({ID})")], key=lambda x: int(x.split('-')[1].split('.')[0]), reverse=True)
+        if len(video) >= 3: return "Upload limit exceeded.", 403
+
         file.save(f"verifyVideos/{username}({ID})-{round(time.time())}.{file.filename.split('.')[-1]}")
         RAPLog(ID, f"has Upload Verify Video {UserConfig['ServerURL'].replace('://', '://admin.')}upload_verify_video?view={ID}")
         return redirect(url_for("uploadVerifyVideo", view=ID))
     else:
         if type(isupload) is str: return render_template("upload_verify_video.html", title="upload verify video", data=DashData(), session=session, config=UserConfig)
         elif type(isview) is str and isview:
+            item = int(request.args.get("p",  1))
             mycursor.execute(f"SELECT username FROM users WHERE id = {isview}")
             username = mycursor.fetchone()[0]
             video = sorted([i for i in os.listdir("verifyVideos") if i.startswith(f"{username}({isview})")], key=lambda x: int(x.split('-')[1].split('.')[0]), reverse=True)
-            
-            if not video: return NotFoundError(None)
+
+            if not video or len(video) < item: return NotFoundError(None)
 
             if request.headers.get('Range', None): Range = request.headers.get('Range').replace("bytes=", "").split("-")
             else: Range = ["0", ""]
-            fileSize = os.path.getsize(f"verifyVideos/{video[0]}")
+            fileSize = os.path.getsize(f"verifyVideos/{video[item - 1]}")
             start = int(Range[0])
             end = fileSize - 1 if not Range[1] else int(Range[1])
             contentLength = end - start + 1
 
-            with open(f"verifyVideos/{video[0]}", "rb") as f:
+            with open(f"verifyVideos/{video[item - 1]}", "rb") as f:
                 f.seek(start)
                 file = f.read(contentLength) if start != 0 or (start == 0 and Range[1]) else f.read()
-            response = Response(file, status=206, mimetype='video/mp4')
+            ptct = requests.get(f"https://b.{ServerDomain}/content-type?q=verifyVideos/{video[item - 1]}", timeout=3)
+            ptct = ptct.json()["msg"]["Content-Type"] if ptct.status_code == 200 else "video/mp4"
+            response = Response(file, status=206, mimetype=ptct)
+            response.headers['Content-Disposition'] = f'inline; filename="{video[item - 1]}"'
             response.headers['Accept-Ranges'] = "bytes"
             response.headers['Content-Range'] = f'bytes {start}-{end}/{fileSize}'
             response.headers['Content-Length'] = contentLength
