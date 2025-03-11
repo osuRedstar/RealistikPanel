@@ -2816,6 +2816,8 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
     except Exception as e: log.error(f"디코 웹훅 전송 실패! | {e}")
     return sc
 
+def unameIsascii(username): return all(ord(c) < 128 for c in username)
+
 def sendUsernameresetMail(session, userID):
     mycursor.execute(f"SELECT username, email FROM users WHERE id = {userID}")
     username, to_email = mycursor.fetchone()
@@ -2831,7 +2833,7 @@ def sendUsernameresetMail(session, userID):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'
-    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    if username and not unameIsascii(username): username = str(Header(username, 'utf-8').encode())
     msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
@@ -2857,7 +2859,7 @@ def sendPwresetMail(session, userID):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'
-    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    if username and not unameIsascii(username): username = str(Header(username, 'utf-8').encode())
     msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
@@ -2888,7 +2890,7 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Bot Devlant <{sender_email}>'
-    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    if username and not unameIsascii(username): username = str(Header(username, 'utf-8').encode())
     msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
@@ -2914,7 +2916,8 @@ def sendBanMail(session, userID, to_email, beatmapInfo):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'
-    if username and not username.isascii(): username = str(Header(username, 'utf-8').encode())
+    log.debug(f"{username} | {type(username)}")
+    if username and not unameIsascii(username): username = str(Header(username, 'utf-8').encode())
     msg['To'] = f"{username} <{to_email}>" if username else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'html'))
