@@ -54,7 +54,7 @@ def dash():
 def RecentRegisteredUsers():
     if HasPrivilege(session["AccountId"], 6):
         #Nerina
-        #mycursor.execute("SELECT users.id, users.osuver, users.username, users.username_safe, users.ban_datetime FROM users WHERE current_status NOT IN ('Offline') ORDER BY {}".format(query))
+        #mycursor.execute("SELECT users.id, users.osuver, users.username, users.username_safe, users.ban_datetime FROM users WHERE current_status NOT IN ('Offline') ORDER BY %s", [query])
         mycursor.execute("SELECT * FROM users ORDER BY id DESC LIMIT 1");
         data = mycursor.fetchall();
 
@@ -109,7 +109,7 @@ def OnlineUserList():
         return "조회 되지 않는 쿼리 입력 : {}".format(query)
 
     #Nerina
-    mycursor.execute("SELECT id, username, current_status FROM users_stats WHERE current_status NOT IN ('Offline') ORDER BY {}".format(query));
+    mycursor.execute("SELECT id, username, current_status FROM users_stats WHERE current_status NOT IN ('Offline') ORDER BY %s", [query]);
     data = mycursor.fetchall();
 
     row_headers = [x[0] for x in mycursor.description]
@@ -142,7 +142,7 @@ def RestrictedUserList(dash=False):
         log.info("/dash에서 /restrictedusers_list 속 함수 요청댐. 에러 방지를 위하여 쿼리 리다이렉트 비활성화 (?)")
 
     #Nerina
-    mycursor.execute("SELECT id, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 2 ORDER BY {}".format(query));
+    mycursor.execute("SELECT id, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 2 ORDER BY %s", [query]);
     data = mycursor.fetchall();
 
     row_headers = [x[0] for x in mycursor.description]
@@ -163,20 +163,20 @@ def BannedUserList(dash=False):
     #/dash 에러 방지
     if not dash:
         query = request.args.get("q")
-        log.debug("bannedlist query = {}".format(query))
+        log.debug(f"bannedlist query = {query}")
         if query is None:
             log.debug("리다이렉트 댐")
             return redirect(f"https://admin.{ServerDomain}/bannedusers_list?q=id")
         #sql 인젝션 방지 (?)
         elif query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
-            log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
-            return "조회 되지 않는 쿼리 입력 : {}".format(query)
+            log.warning(f"조회 되지 않는 쿼리 입력 : {query}")
+            return f"조회 되지 않는 쿼리 입력 : {query}"
     else:
         query = "id"
         log.info("/dash에서 /bannedusers_list 속 함수 요청댐. 에러 방지를 위하여 쿼리 리다이렉트 비활성화 (?)")
 
     #Nerina
-    mycursor.execute("SELECT id, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 0 ORDER BY {}".format(query));
+    mycursor.execute("SELECT id, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 0 ORDER BY %s", [query]);
     data = mycursor.fetchall();
 
     row_headers = [x[0] for x in mycursor.description]
@@ -268,7 +268,7 @@ def ipToUser():
             return render_template("iptousers.html", title="IP To users", data=DashData(), session=session, config=UserConfig)
     else:
         ip = request.form['IP']
-        mycursor.execute(f"SELECT userid, username FROM ip_user INNER JOIN users ON ip_user.userid = users.id WHERE ip = '{ip}'")
+        mycursor.execute("SELECT userid, username FROM ip_user INNER JOIN users ON ip_user.userid = users.id WHERE ip = %s", [ip])
         result = [{"userID": i[0], "username": i[1]} for i in mycursor.fetchall()]
         return Response(json.dumps({"ip": ip, "userinfo": result}, indent=2, ensure_ascii=False), content_type='application/json')
 @app.route("/iptousers/<ip>")
@@ -276,7 +276,7 @@ def ipToUserApi(ip):
     if not HasPrivilege(session["AccountId"]): #mixing things up eh
         return NoPerm(session, request.url)
     else:
-        mycursor.execute(f"SELECT userid, username FROM ip_user INNER JOIN users ON ip_user.userid = users.id WHERE ip = '{ip}'")
+        mycursor.execute("SELECT userid, username FROM ip_user INNER JOIN users ON ip_user.userid = users.id WHERE ip = %s", [ip])
         result = [{"userID": i[0], "username": i[1]} for i in mycursor.fetchall()]
         return Response(json.dumps({"ip": ip, "userinfo": result}, indent=2, ensure_ascii=False), content_type='application/json')
 
@@ -389,7 +389,7 @@ def leaderboard():
 """ ranked_status http + rankedby"""
 @app.route("/frontend/ranked_status/<id>")
 def ranked_status(id):
-    mycursor.execute("SELECT ranked, rankedby FROM beatmaps WHERE beatmap_id = {}".format(id))
+    mycursor.execute("SELECT ranked, rankedby FROM beatmaps WHERE beatmap_id = %s", [id])
     try:
         result = mycursor.fetchone()
         redstar_ranked = result[0]
@@ -434,7 +434,7 @@ def ranked_status(id):
 @app.route("/rank/select/<id>")
 def RankMap_select(id):
     log.debug("/ranked/select/<id> 요청 완료")
-    mycursor.execute("SELECT rankedby FROM beatmaps WHERE beatmap_id = {}".format(id))
+    mycursor.execute("SELECT rankedby FROM beatmaps WHERE beatmap_id = %s", [id])
     rankedby = mycursor.fetchone()
     
     return render_template("search_beatmap.html", title="Searched Beatmap!", data=DashData(), session=session, config=UserConfig, song_query = id, SuggestedBmaps2 = SplitList(SearchBeatmap(id, rank_select = True)))
@@ -443,11 +443,11 @@ def RankMap_select(id):
 @app.route("/rank/<id>", methods = ["GET", "POST"])
 def RankMap(id):
     #비트맵셋 요청시 리다이렉트
-    mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmapset_id = {}".format(id))
+    mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmapset_id = %s", [id])
     check_beatmapSet = mycursor.fetchone()
 
     #비트맵셋 요청시 리다이렉트 --> 혹시나 DB중복감지
-    mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmap_id = {}".format(id))
+    mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmap_id = %s", [id])
     check_beatmap = mycursor.fetchone()
 
     if check_beatmapSet is not None and check_beatmap is not None:
@@ -503,7 +503,7 @@ def frontend_rankRequest_setQualified(type, bid):
     log.info("홈페이지에서 리퀘 도착")
     try:
         if type == "b":
-            log.info("비트맵 아이디 감지 {}".format(bid))
+            log.info(f"비트맵 아이디 감지 {bid}")
             #비트맵셋 아이디 요청
             #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 'b': first_bid}
             param = {'k': UserConfig["APIKey"], 'b': first_bid}
@@ -523,10 +523,10 @@ def frontend_rankRequest_setQualified(type, bid):
                 bid = i["beatmap_id"]
                 param = {'b': bid}
                 requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', params=param)
-                log.info("{} 비트맵 DB에 저장중".format(bid))
+                log.info(f"{bid} 비트맵 DB에 저장중")
 
         elif type == "s":
-            log.info("비트맵셋 아이디 감지 {}".format(bid))
+            log.info(f"비트맵셋 아이디 감지 {bid}")
             BeatmapSet = bid
             #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 's': bid}
             param = {'k': UserConfig["APIKey"], 's': bid}
@@ -538,68 +538,68 @@ def frontend_rankRequest_setQualified(type, bid):
                 bid = i["beatmap_id"]
                 param = {'b': bid}
                 requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', params=param)
-                log.info("{} 비트맵 DB에 저장중".format(bid))
+                log.info(f"{bid} 비트맵 DB에 저장중")
     except:
         log.error("ERROR: 반초 요청 + Redstar DB등록 작업 실패")
         return "ERROR: 반초 요청 + Redstar DB등록 작업 실패"
 
     try:
         if type == "b":
-            mycursor.execute("SELECT ranked, ranked_status_freezed FROM beatmaps WHERE beatmap_id = %s", (first_bid,))
+            mycursor.execute("SELECT ranked, ranked_status_freezed FROM beatmaps WHERE beatmap_id = %s", [first_bid])
             is_requested = mycursor.fetchall()
-            log.debug("is_requested = {}".format(is_requested))
+            log.debug(f"is_requested = {is_requested}")
         elif type == "s":
-            mycursor.execute("SELECT ranked, ranked_status_freezed FROM beatmaps WHERE beatmapset_id = %s", (first_bid,))
+            mycursor.execute("SELECT ranked, ranked_status_freezed FROM beatmaps WHERE beatmapset_id = %s", [first_bid])
             is_requested = mycursor.fetchall()
-            log.debug("is_requested = {}".format(is_requested))
+            log.debug(f"is_requested = {is_requested}")
 
         if is_requested[0][0] is not 0 and is_requested[0][1] is not 0:
-            log.warning("{}/{} 값이 리퀘스트에 존재함?".format(type, first_bid))
+            log.warning(f"{type}/{first_bid} 값이 리퀘스트에 존재함?")
             log.info("작업중지함")
-            return "{}/{} 값이 리퀘스트에 존재함?, 작업중지함".format(type, first_bid)
+            return f"{type}/{first_bid} 값이 리퀘스트에 존재함?, 작업중지함"
         else:
-            log.info("{}/{} 값이 리퀘스트에 존재하지 않음?".format(type, first_bid))
+            log.info(f"{type}/{first_bid} 값이 리퀘스트에 존재하지 않음?")
             log.info("다음 작업으로 넘어감")
     except:
         log.error("ERROR: 리퀘여부 확인 작업 실패")
         return "ERROR: 리퀘여부 확인 작업 실패"
 
     try:
-        mycursor.execute("SELECT userid FROM rank_requests WHERE bid = %s AND type = %s", (first_bid, type))
+        mycursor.execute("SELECT userid FROM rank_requests WHERE bid = %s AND type = %s", [first_bid, type])
         requestby_id = mycursor.fetchone()[0]
 
-        mycursor.execute("SELECT username FROM users WHERE id = %s", (requestby_id,))
+        mycursor.execute("SELECT username FROM users WHERE id = %s", [requestby_id])
         requestby_username = mycursor.fetchone()[0]
 
         #에러나서 type s 추가
         if type == "b":
-            mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", (first_bid,))
+            mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", [first_bid])
             is_unranked = mycursor.fetchone()[0]
         elif type == "s":
-            mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", (bid,))
+            mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", [bid])
             is_unranked = mycursor.fetchone()[0]
 
         if is_unranked == 0:
             #퀄파로 변경
-            mycursor.execute("UPDATE beatmaps SET rankedby = 999, ranked = 4, ranked_status_freezed = 1 WHERE beatmapset_id = %s", (BeatmapSet,))
+            mycursor.execute("UPDATE beatmaps SET rankedby = 999, ranked = 4, ranked_status_freezed = 1 WHERE beatmapset_id = %s", [BeatmapSet])
             mydb.commit()
-            log.info("리퀘 비트맵셋 {} 퀄파 변경".format(BeatmapSet))
+            log.info(f"리퀘 비트맵셋 {BeatmapSet} 퀄파 변경")
         elif is_unranked == 5:
             log.warning("럽드 확인함")
-            mycursor.execute("UPDATE beatmaps SET ranked_status_freezed = 1 WHERE beatmapset_id = %s", (BeatmapSet,))
+            mycursor.execute("UPDATE beatmaps SET ranked_status_freezed = 1 WHERE beatmapset_id = %s", [BeatmapSet])
             mydb.commit()
             log.info("럽드 ranked_status_freezed 1로 변경")
         else:
             log.warning("퀄파로 변경중 언랭크가 아닌 값을 발견함")
     except:
         log.error("ERROR: 리퀘요청자 가져오기 + 퀄파 변경 작업 실패")
-        log.debug("requestby_id = {}".format(requestby_id))
-        log.debug("requestby_username = {}".format(requestby_username))
-        log.debug("is_unranked = {}".format(is_unranked))
+        log.debug(f"requestby_id = {requestby_id}")
+        log.debug(f"requestby_username = {requestby_username}")
+        log.debug(f"is_unranked = {is_unranked}")
         return "ERROR: 리퀘요청자 가져오기 + 퀄파 변경록 작업 실패"
 
     try:
-        mycursor.execute("SELECT song_name, beatmap_id FROM beatmaps WHERE beatmapset_id = %s LIMIT 1", (BeatmapSet,))
+        mycursor.execute("SELECT song_name, beatmap_id FROM beatmaps WHERE beatmapset_id = %s LIMIT 1", [BeatmapSet])
         MapData = mycursor.fetchone()
         #Getting bmap name without diff
         BmapName = MapData[0].split("[")[0].rstrip() #¯\_(ツ)_/¯ might work
@@ -626,7 +626,7 @@ def frontend_rankRequest_setQualified(type, bid):
         FokaMessage(params)
         log.chat("2차 인게임 공지 전송 완료")
 
-        return "{} 비트맵셋 퀄파로 변경 완료".format(BeatmapSet)
+        return f"{BeatmapSet} 비트맵셋 퀄파로 변경 완료"
     except:
         log.error("ERROR: 디코 웹훅 + 인게임 알림 작업 실패")
         return "ERROR: 디코 웹훅 + 인게임 알림 작업 실패"
@@ -640,19 +640,19 @@ def SearchBeatmap(song_query, rank_select = False):
         Beatmaps = [0, 0]
 
         #bid
-        mycursor.execute("SELECT beatmapset_id FROM beatmaps WHERE beatmap_id = {}".format(song_query))
+        mycursor.execute("SELECT beatmapset_id FROM beatmaps WHERE beatmap_id = %s", [song_query])
         bsid = mycursor.fetchone()[0]
-        mycursor.execute("SELECT beatmap_id, song_name, beatmapset_id, rankedby FROM beatmaps WHERE beatmapset_id = {}".format(bsid))
+        mycursor.execute("SELECT beatmap_id, song_name, beatmapset_id, rankedby FROM beatmaps WHERE beatmapset_id = %s", [bsid])
         a = mycursor.fetchall()[0]
         Beatmaps[0] = a
 
         #bsid
-        mycursor.execute("SELECT beatmap_id, song_name, beatmapset_id, rankedby FROM beatmaps WHERE beatmapset_id = {}".format(song_query))
+        mycursor.execute("SELECT beatmap_id, song_name, beatmapset_id, rankedby FROM beatmaps WHERE beatmapset_id = %s", [song_query])
         a2 = mycursor.fetchall()[0]
         Beatmaps[1] = a2
     else:
         #기존 곡 서치 (비트맵 이름)
-        mycursor.execute(f"SELECT beatmap_id, song_name, beatmapset_id, rankedby FROM beatmaps WHERE song_name LIKE '%{song_query}%' GROUP BY beatmapset_id")
+        mycursor.execute("SELECT beatmap_id, song_name, beatmapset_id, rankedby FROM beatmaps WHERE song_name LIKE %s GROUP BY beatmapset_id", [f"%{song_query}%"])
         Beatmaps = mycursor.fetchall()
 
     BeatmapList = []
@@ -688,10 +688,10 @@ def SearchBeatmap(song_query, rank_select = False):
 def pw_reset(id):
     idontknowemail = f"https://{ServerDomain}/settings"
 
-    mycursor.execute(f"SELECT username FROM users WHERE id = {id}")
+    mycursor.execute("SELECT username FROM users WHERE id = %s", [id])
     username = mycursor.fetchone()[0]
 
-    mycursor.execute(f"SELECT id, k, u, t FROM password_recovery WHERE u = '{username}' AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1")
+    mycursor.execute("SELECT id, k, u, t FROM password_recovery WHERE u = %s AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1", [username])
     info = mycursor.fetchone()
     if info is None: noRecoveryData = True
     else:
@@ -708,7 +708,7 @@ def pw_reset(id):
         
         if exfireDate < nowDate:
             noRecoveryData = True
-            mycursor.execute(f"DELETE FROM password_recovery WHERE u = '{username}' AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1")
+            mycursor.execute("DELETE FROM password_recovery WHERE u = %s AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1", [username])
             mydb.commit()
 
             log.warning("비번 재설정 키 만료됨!")
@@ -744,7 +744,7 @@ def pw_reset(id):
             #ChangePassword(id, password)
             ChangePWForm(form={"accid": id, "newpass": password}, session={"AccountId": id})
 
-            mycursor.execute(f"DELETE FROM password_recovery WHERE u = '{username}' AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1")
+            mycursor.execute("DELETE FROM password_recovery WHERE u = %s AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1", [username])
             mydb.commit()
 
             html = f"""
@@ -770,7 +770,7 @@ def pw_reset(id):
                 return render_template("pwreset_confirm.html", title="Reset Password!", data=DashData(), session=session, config=UserConfig, code=code, idontknowemail=idontknowemail, password=password, ck=True)
             else:
                 log.warning("비번 재설정 키 만료됨!")
-                mycursor.execute(f"DELETE FROM password_recovery WHERE id = {info[0]} AND k LIKE 'Realistik Panel : %'")
+                mycursor.execute("DELETE FROM password_recovery WHERE id = %s AND k LIKE 'Realistik Panel : %'", [info[0]])
                 mydb.commit()
 
                 html = f"""
@@ -1005,7 +1005,7 @@ def uploadVerifyVideo():
     if request.method == "POST":
         ID = request.form.get("ID", None)
         file = request.files.get("File", None)
-        mycursor.execute(f"SELECT username FROM users WHERE id = {ID}")
+        mycursor.execute("SELECT username FROM users WHERE id = %s", [ID])
         username = mycursor.fetchone()[0]
 
         ALLOWED_EXTENSIONS = {"avi", "mp4", "ogv", "ts", "webm", "flv", "wmv", "mkv", "mov"}
@@ -1021,7 +1021,7 @@ def uploadVerifyVideo():
         if type(isupload) is str: return render_template("upload_verify_video.html", title="upload verify video", data=DashData(), session=session, config=UserConfig)
         elif type(isview) is str and isview:
             item = int(request.args.get("p",  1))
-            mycursor.execute(f"SELECT username FROM users WHERE id = {isview}")
+            mycursor.execute("SELECT username FROM users WHERE id = %s", [isview])
             username = mycursor.fetchone()[0]
             video = sorted([i for i in os.listdir("verifyVideos") if i.startswith(f"{username}({isview})")], key=lambda x: int(x.split('-')[1].split('.')[0]), reverse=True)
 
@@ -1072,7 +1072,7 @@ def send_auto_ban_mail():
     else:
         BI = json.loads(BI)
 
-    mycursor.execute(f"SELECT email FROM users WHERE id = {userID}")
+    mycursor.execute("SELECT email FROM users WHERE id = %s", [userID])
     email = mycursor.fetchone()[0]
 
     if request.method == "GET":
@@ -1095,7 +1095,7 @@ def send_ban_mail():
     else:
         if HasPrivilege(session["AccountId"]):
             userID = request.form["userid"]
-            mycursor.execute(f"SELECT email FROM users WHERE id = {userID}")
+            mycursor.execute("SELECT email FROM users WHERE id = %s", [userID])
             email = mycursor.fetchone()[0]
             beatmapInfo = {"bid": request.form["bid"], "beatmapInfo": request.form["msg"]}
             sendBanMail(session, userID, email, beatmapInfo)
@@ -1182,10 +1182,10 @@ def SystemSettings():
 @app.route("/user/edit/<id>", methods = ["GET", "POST"])
 def EditUser(id):
     def client_ver():
-        mycursor.execute("SELECT osuver FROM users WHERE id = %s", (id,))
+        mycursor.execute("SELECT osuver FROM users WHERE id = %s", [id])
         return mycursor.fetchone()[0]
     def hw_user_info():
-        mycursor.execute("SELECT * FROM hw_user WHERE userid = %s", (id,))
+        mycursor.execute("SELECT * FROM hw_user WHERE userid = %s", [id])
         return mycursor.fetchone()
 
     if request.method == "GET":
@@ -1516,7 +1516,7 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
                 Dicti["scoreID"] = x[12]
                 Dicti["completed"] = x[13]
                 
-                mycursor.execute(f"SELECT COUNT(*) FROM scores{RXorAP[1]} WHERE userid = %s AND pp >= %s and play_mode = %s ORDER BY id DESC", (uid, minpp, gamemode))
+                mycursor.execute(f"SELECT COUNT(*) FROM scores{RXorAP[1]} WHERE userid = %s AND pp >= %s and play_mode = %s ORDER BY id DESC", [uid, minpp, gamemode])
                 Dicti["submit_count"] = f"{mycursor.fetchone()[0]:,}"
 
                 try:
@@ -1549,7 +1549,7 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
                     Dicti["Nodata_SongName"] = SongName
 
                 #유페 totalPP, accuracy, ranked_score, playcount 추가
-                mycursor.execute(f"SELECT pp_{mode}, avg_accuracy_{mode}, ranked_score_{mode}, playcount_{mode} FROM {RXorAP[0]}_stats WHERE id = %s", (uid,))
+                mycursor.execute(f"SELECT pp_{mode}, avg_accuracy_{mode}, ranked_score_{mode}, playcount_{mode} FROM {RXorAP[0]}_stats WHERE id = %s", [uid])
                 stats = mycursor.fetchall()[0]
 
                 Dicti["totalPP"] = f'{stats[0]:,}'
@@ -1564,7 +1564,7 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
             def NODATA(uid):
                 log.error("{} 해당 유저의 {}데이터가 존재하지 않음".format(uid, RXorAP[0].upper()))
 
-                mycursor.execute("SELECT username FROM users WHERE id = %s", (uid,))
+                mycursor.execute("SELECT username FROM users WHERE id = %s", [uid])
                 uname = mycursor.fetchone()[0]
                 ReadableArray = []
                 Dicti = {}
@@ -1656,7 +1656,7 @@ def StatsRoute():
                 log.info("u/rx/recent/{} 로 리다이렉트".format(user))
                 return redirect(f"/u/rx/recent/{user}")
             else:
-                mycursor.execute("SELECT id FROM users WHERE username = %s", (user,))
+                mycursor.execute("SELECT id FROM users WHERE username = %s", [user])
                 user = mycursor.fetchone()
                 user = user[0]
                 log.info("u/rx/recent/{} 로 리다이렉트".format(user))
@@ -1868,17 +1868,17 @@ def PrivDeath(PrivID:int):
 #beatmaps.rankedby 변경함수
 def beatmap_rankedby(text, bm):
     if text == "BeatmapID":
-        mycursor.execute("UPDATE beatmaps SET rankedby = %s WHERE beatmap_id = %s", (session["AccountId"], bm))
+        mycursor.execute("UPDATE beatmaps SET rankedby = %s WHERE beatmap_id = %s", [session["AccountId"], bm])
         mydb.commit()
         log.info("비트맵 {} rankedby 변경".format(bm))
     elif text == "BeatmapSetID":
-        mycursor.execute("UPDATE beatmaps SET rankedby = %s WHERE beatmapset_id = %s", (session["AccountId"], bm))
+        mycursor.execute("UPDATE beatmaps SET rankedby = %s WHERE beatmapset_id = %s", [session["AccountId"], bm])
         mydb.commit()
         log.info("비트맵 셋 {} rankedby 변경".format(bm))
 
 #바로 아래 코드 대비한 bsid to bid
 def bsid_to_bid(bsid):
-    mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmapset_id = {}".format(bsid))
+    mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmapset_id = %s", [bsid])
     rankedby = mycursor.fetchone()
     return rankedby[0]
 
