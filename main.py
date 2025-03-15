@@ -935,6 +935,68 @@ def SearchMap_Post():
     else:
         return redirect(f"/rank")
 
+@app.route("/verify_video")
+def Verify_videos_tool():
+    if HasPrivilege(session["AccountId"], 6):
+        return render_template("verify_video_tool.html", title="verify_video_tool", data=DashData(), session=session, config=UserConfig)
+    else: return NoPerm(session, request.url)
+
+@app.route("/testaccount_build")
+def TestAccountBuild():
+    if HasPrivilege(session["AccountId"], 6):
+        tsac = request.args.get("ts", 1014)
+        target = request.args.get("target", 0)
+        if tsac == target: return "NO"
+
+        newUsername = f"test{target}"
+        CU = ChangeUsername(tsac, newUsername)
+        if not CU["code"]: return CU
+        ChangePWForm(form={"accid": tsac, "newpass": newUsername}, session={"AccountId": tsac})
+        WipeAccount(tsac)
+
+        mycursor.execute("SELECT h.mac, h.unique_id, h.disk_id, u.notes FROM users AS u JOIN hw_user AS h ON u.id = h.userid WHERE u.id = %s", [target])
+        notes = mycursor.fetchone(); notes = f"{notes[0]}:{notes[1]}:{notes[2]}\n\n\n{notes[3]}"
+        q = [newUsername] * 3 + [notes, target]
+        mycursor.execute("UPDATE users AS u JOIN hw_user AS h ON u.id = h.userid SET h.mac = %s, h.unique_id = %s, h.disk_id = %s, h.activated = 0, u.notes = %s WHERE u.id = %s", q)
+        mydb.commit()
+        return newUsername
+
+    else: return NoPerm(session, request.url)
+
+@app.route("/testaccount_migration")
+def TestAccountMigration():
+    if HasPrivilege(session["AccountId"], 6):
+        tsac = request.args.get("ts", 1014)
+        target = request.args.get("target", 1014)
+        if tsac == target: return "NO"
+
+        for sc in ["", "_relax", "_ap"]:
+            log.info(f"scores{sc} 테이블 작업중...")
+            mycursor.execute(f"UPDATE scores{sc} SET userid = %s WHERE userid = %s", [target, tsac]) #ts --> origin 이식
+            mydb.commit()
+            mycursor.execute(f"SELECT id, beatmap_md5, play_mode, COUNT(*) AS cnt FROM scores{sc} WHERE userid = %s AND completed = 3 GROUP BY beatmap_md5, completed HAVING cnt > 1", [target]) #중복점수 beatmap_md5 값 가져옴
+            for i in mycursor.fetchall():
+                log.info(i)
+                mycursor.execute(f"UPDATE scores{sc} SET completed = 2 WHERE userid = %s AND beatmap_md5 = %s AND play_mode = %s AND completed = 3", [target, i[1], i[2]]) #completed 2 일괄 변경
+                mycursor.execute(f"SELECT id FROM scores{sc} WHERE userid = %s AND beatmap_md5 = %s AND play_mode = %s ORDER BY pp DESC LIMIT 1", [target, i[1], i[2]]) #pp 최고기록 id 가져옴
+                mycursor.execute(f"UPDATE scores{sc} SET completed = 3 WHERE id = %s", [mycursor.fetchone()[0]]) #베퍼포 설정
+                mydb.commit()
+
+        CU = ChangeUsername(tsac, UserConfig["TestAccountInfo"]["id"])
+        if not CU["code"]: return CU
+        ChangePWForm(form={"accid": tsac, "newpass": UserConfig["TestAccountInfo"]["pass"]}, session={"AccountId": tsac})
+        WipeAccount(tsac)
+
+        try:
+            mycursor.execute("SELECT notes FROM users WHERE id = %s", [target])
+            hw, notes = mycursor.fetchone()[0].split("\n\n\n", 1)
+            q = hw.split(":") + [notes, target]
+            mycursor.execute("UPDATE users AS u JOIN hw_user AS h ON u.id = h.userid SET h.mac = %s, h.unique_id = %s, h.disk_id = %s, h.activated = 1, u.notes = %s WHERE u.id = %s", q)
+            mydb.commit()
+        except Exception as e: log.warning(f"{e}\n\n{target} ID 는 hw_info 복원 필요 없다고 판?단함")
+        return "ok"
+    else: return NoPerm(session, request.url)
+
 @app.route("/upload_verify_video", methods = ["GET", "POST"])
 def uploadVerifyVideo():
     if not os.path.exists("verifyVideos"): os.makedirs("verifyVideos")
@@ -946,7 +1008,7 @@ def uploadVerifyVideo():
         mycursor.execute(f"SELECT username FROM users WHERE id = {ID}")
         username = mycursor.fetchone()[0]
 
-        ALLOWED_EXTENSIONS = {"avi", "mp4", "ogv", "ts", "webm", "flv", "wmv", "mkv"}
+        ALLOWED_EXTENSIONS = {"avi", "mp4", "ogv", "ts", "webm", "flv", "wmv", "mkv", "mov"}
         if file.filename.split(".")[-1].lower() not in ALLOWED_EXTENSIONS:
             return f"Invalid file type. Only video files are allowed.\n{ALLOWED_EXTENSIONS}", 400
         video = sorted([i for i in os.listdir("verifyVideos") if i.startswith(f"{username}({ID})")], key=lambda x: int(x.split('-')[1].split('.')[0]), reverse=True)

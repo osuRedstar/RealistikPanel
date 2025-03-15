@@ -55,24 +55,25 @@ DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
     "FokaKey" : "take this from your pep.py config or it will not work",
     "APIKey": "",
     "Email": "support@redstar.moe",
-    "EmailPassword": ""
+    "EmailPassword": "",
+    "TestAccountInfo": {
+        "id": "test1014",
+        "pass": "test1014"
+    }
 }
 
 class JsonFile:
     @classmethod
     def SaveDict(self, Dict, File="config.json"):
         """Saves a dict as a file"""
-        with open(File, 'w') as json_file:
-            json.dump(Dict, json_file, indent=4)
+        with open(File, 'w') as json_file: json.dump(Dict, json_file, indent=4)
 
     @classmethod
     def GetDict(self, File="config.json"):
         """Returns a dict from file name"""
-        if not path.exists(File):
-            return {}
+        if not path.exists(File): return {}
         else:
-            with open(File) as f:
-                data = json.load(f)
+            with open(File) as f: data = json.load(f)
             return data
 
 UserConfig = JsonFile.GetDict("config.json")
@@ -91,8 +92,7 @@ else:
             AllGood = False
             NeedSet.append(key)
 
-    if AllGood:
-        print(Fore.GREEN+" Configuration loaded successfully! Loading..." + Fore.RESET)
+    if AllGood: print(Fore.GREEN+" Configuration loaded successfully! Loading..." + Fore.RESET)
     else:
         #fixes config
         print(Fore.BLUE+" Updating config..." + Fore.RESET)
