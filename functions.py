@@ -1300,15 +1300,9 @@ def WipeAccount(AccId):
         "userID" : AccId,
         "reason" : "Your account has been wiped! F"
     }))
-    if UserConfig["HasRelax"]:
-        mycursor.execute("DELETE FROM scores_relax WHERE userid = %s", (AccId,))
-    if UserConfig["HasAutopilot"]:
-        mycursor.execute("DELETE FROM scores_ap WHERE userid = %s", (AccId,))
     WipeVanilla(AccId)
-    if UserConfig["HasRelax"]:
-        WipeRelax(AccId)
-    if UserConfig["HasAutopilot"]:
-        WipeAutopilot(AccId)
+    if UserConfig["HasRelax"]: WipeRelax(AccId)
+    if UserConfig["HasAutopilot"]: WipeAutopilot(AccId)
 
 def WipeVanilla(AccId):
     """Wiped vanilla scores for user."""
