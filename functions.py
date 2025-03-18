@@ -1518,8 +1518,7 @@ def BanUser(id : int):
     mycursor.execute("SELECT privileges FROM users WHERE id = %s", [id])
     Privilege = mycursor.fetchall()
     Timestamp = round(time.time())
-    if len(Privilege) == 0:
-        return
+    if len(Privilege) == 0: return
     Privilege = Privilege[0][0]
     if Privilege == 0: #if already banned
         mycursor.execute("UPDATE users SET privileges = 3, ban_datetime = '0' WHERE id = %s", [id])
@@ -2804,7 +2803,8 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
             msg = origin[:origin.find("Content-Type: text/html;")]
             msg += origin[origin.find('<a id="Reason for sending mail"'):origin.find('</a>', origin.find('<a id="Reason for sending mail"')) + 4]
         else: msg = msg.as_string()
-
+    except Exception as e: msg = e; log.error(f"디코 웹훅 전송 실패! | {msg}")
+    finally:
         webhook = DiscordWebhook(url=UserConfig["AdminLogWebhook"])
         embed = DiscordEmbed(description=msg, color=242424)
         embed.set_author(name=f"{sess['AccountName']} Sent {type} email", url=f"{UserConfig['ServerURL']}u/{sess['AccountId']}", icon_url=f"{UserConfig['AvatarServer']}999")
@@ -2812,7 +2812,6 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
         webhook.add_embed(embed)
         webhook.execute()
         print(" * Posting webhook!")
-    except Exception as e: log.error(f"디코 웹훅 전송 실패! | {e}")
     return sc
 
 def unameIsascii(username): return all(ord(c) < 128 for c in username)

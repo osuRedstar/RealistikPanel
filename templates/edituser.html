@@ -71,7 +71,9 @@
             <!-- 추가함 -->
             <div class="form-group">
                 <label>osuver</label>
-                <input type="text" class="form-control" name="osuver" value="{{ osuver }}" readonly>
+                <input type="text" class="form-control" name="osuver" value="{{ osuver['ver'] }}" readonly>
+                <a>Client Ban Count</a>
+                <input type="text" class="form-control" name="hw_id" value="{{ osuver['cnt'] }}" readonly>
             </div>
             <!-- 추가함 -->
             <div class="form-group">

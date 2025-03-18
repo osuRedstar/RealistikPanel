@@ -960,7 +960,6 @@ def TestAccountBuild():
         mycursor.execute("UPDATE users AS u JOIN hw_user AS h ON u.id = h.userid SET h.mac = %s, h.unique_id = %s, h.disk_id = %s, h.activated = 0, u.notes = %s WHERE u.id = %s", q)
         mydb.commit()
         return newUsername
-
     else: return NoPerm(session, request.url)
 
 @app.route("/testaccount_migration")
@@ -1183,7 +1182,14 @@ def SystemSettings():
 def EditUser(id):
     def client_ver():
         mycursor.execute("SELECT osuver FROM users WHERE id = %s", [id])
-        return mycursor.fetchone()[0]
+        osuver = mycursor.fetchone()[0]
+        mycursor.execute("SELECT privileges, COUNT(*) AS cnt FROM users WHERE osuver = %s AND privileges IN (0, 2) GROUP BY privileges", [osuver])
+        cnt = mycursor.fetchall()
+        if len(cnt) == 0: cnt = "Ban : 0, Restrict : 0"
+        elif len(cnt) == 1: cnt = f"Ban : {cnt[0][1]}, Restrict : 0"
+        elif len(cnt) == 2: cnt = f"Ban : {cnt[0][1]}, Restrict : {cnt[1][1]}"
+        else: cnt = f"? : {cnt}"
+        return {"ver": osuver, "cnt": cnt}
     def hw_user_info():
         mycursor.execute("SELECT * FROM hw_user WHERE userid = %s", [id])
         return mycursor.fetchone()
