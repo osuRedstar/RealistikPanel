@@ -26,6 +26,7 @@ from email.header import Header
 import string
 import random
 
+requestHeaders = {"User-Agent": UserConfig["GitHubRepo"], "Referer": UserConfig["ServerURL"].replace("://", "://admin.")}
 
 init() #initialises colourama for colours
 Changelogs.reverse()
@@ -640,7 +641,7 @@ def RankBeatmap(BeatmapNumber, BeatmapId, ActionName, session):
 
 def FokaMessage(params) -> None:
     """Sends a fokabot message."""
-    requests.get(f"{UserConfig['BanchoURL']}api/v1/fokabotMessage", params=params)
+    requests.get(f"{UserConfig['BanchoURL']}api/v1/fokabotMessage", headers=requestHeaders, params=params)
 
 def Webhook(BeatmapId, ActionName, session, oldRank):
     """Beatmap rank webhook."""
@@ -832,7 +833,7 @@ def ApplySystemSettings(DataArray, Session):
 def IsOnline(AccountId: int) -> bool:
     """Checks if given user is online."""
     try:
-        Online = requests.get(url=f"{UserConfig['BanchoURL']}api/v1/isOnline?id={AccountId}").json()
+        Online = requests.get(url=f"{UserConfig['BanchoURL']}api/v1/isOnline?id={AccountId}", headers=requestHeaders).json()
         if Online["status"] == 200:
             return Online["result"]
         else:
@@ -841,12 +842,12 @@ def IsOnline(AccountId: int) -> bool:
 
 def CalcPP(BmapID):
     """Sends request to letsapi to calc PP for beatmap id."""
-    reqjson = requests.get(url=f"{UserConfig['LetsAPI']}v1/pp?b={BmapID}").json()
+    reqjson = requests.get(url=f"{UserConfig['LetsAPI']}v1/pp?b={BmapID}", headers=requestHeaders).json()
     return round(reqjson["pp"][0], 2)
 
 def CalcPPDT(BmapID):
     """Sends request to letsapi to calc PP for beatmap id with the double time mod."""
-    reqjson = requests.get(url=f"{UserConfig['LetsAPI']}v1/pp?b={BmapID}&m=64").json()
+    reqjson = requests.get(url=f"{UserConfig['LetsAPI']}v1/pp?b={BmapID}&m=64", headers=requestHeaders).json()
     return round(reqjson["pp"][0], 2)
 
 def Unique(Alist):
@@ -2154,9 +2155,9 @@ def SetBMAPSetStatus(BeatmapSet: int, Staus: int, session):
 
 def FindUserByUsername(User: str, Page: int, filterUsers: list=None):
     """Finds user by their username OR email."""
+    q = []
     if filterUsers and type(filterUsers) is list:
         User, privilege, badge, country = filterUsers
-        q = []
         if privilege != -1: q.append(privilege); privilege = f"and privileges = %s "
         else: privilege= ""
         if badge != -1: q.append(badge); badge = f"and u.id IN (SELECT ub.user FROM user_badges ub WHERE ub.badge = %s) "
@@ -2164,7 +2165,7 @@ def FindUserByUsername(User: str, Page: int, filterUsers: list=None):
         if country != "-1": q.append(country); country = f"and u.id IN (SELECT us.id FROM users_stats us WHERE us.country = %s) "
         else: country = ""
         pbc = privilege+badge+country
-    else: pbc = ""
+    else:  pbc = ""
 
     #calculating page offsets
     Offset = UserConfig["PageSize"] * (Page - 1)
@@ -2174,7 +2175,7 @@ def FindUserByUsername(User: str, Page: int, filterUsers: list=None):
         searchType = "email"
     else: #its a username
         searchType = "username"; User = f"%{User}%" #for sql to treat is as substring
-    q = [User] + q + [UserConfig["PageSize"], Offset]
+    q = [User, *q, UserConfig["PageSize"], Offset]
     mycursor.execute(f"SELECT u.id, u.username, u.privileges, u.allowed FROM users u WHERE u.{searchType} LIKE %s {pbc} LIMIT %s OFFSET %s", q) #i will keep the like statement unless it causes issues
     Users = mycursor.fetchall()
     if len(Users) > 0:
@@ -2400,7 +2401,7 @@ def UserPageCount(filterUsers: list=None):
             searchType = "email"
         else: #its a username
             searchType = "username"; User = f"%{User}%" #for sql to treat is as substring
-        q = [User] + q
+        q = [User, *q]
         mycursor.execute(f"SELECT count(*) FROM users u WHERE u.{searchType} LIKE %s {pbc}", q) #i will keep the like statement unless it causes issues
         TheNumber = mycursor.fetchone()[0]
     else:
