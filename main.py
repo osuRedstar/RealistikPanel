@@ -30,6 +30,7 @@ class NoPingFilter(logging.Filter):
 logging.getLogger('werkzeug').addFilter(NoPingFilter())
 
 ServerDomain = UserConfig["ServerURL"].replace("https://", "").replace("/", "")
+requestHeaders = {"User-Agent": UserConfig["GitHubRepo"], "Referer": UserConfig["ServerURL"].replace("://", "://admin.")}
 
 @app.route("/")
 def home():
@@ -198,7 +199,7 @@ def status():
     log.debug("status query = {}".format(query))
     if query == "1":
         try:
-            MediaServer = requests.get(f"https://b.{ServerDomain}/status", timeout=1).json()
+            MediaServer = requests.get(f"https://b.{ServerDomain}/status", headers=requestHeaders, timeout=1).json()
         except Exception as err:
             print(f"[ERROR] https://b.{ServerDomain}/status: ", err)
             MediaServer = {"code" : 503, "oszCount" : -1}
@@ -409,7 +410,7 @@ def ranked_status(id):
         redstar_ranked = None
 
     try:
-        bancho_ranked = int(requests.get(f'https://osu.ppy.sh/api/get_beatmaps?k={UserConfig["APIKey"]}&b={id}').json()[0]["approved"])
+        bancho_ranked = int(requests.get(f'https://osu.ppy.sh/api/get_beatmaps?k={UserConfig["APIKey"]}&b={id}', headers=requestHeaders).json()[0]["approved"])
         if bancho_ranked == 1:
             bancho_ranked = ["Ranked", 1]
         elif bancho_ranked == 4:
@@ -507,7 +508,7 @@ def frontend_rankRequest_setQualified(type, bid):
             #비트맵셋 아이디 요청
             #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 'b': first_bid}
             param = {'k': UserConfig["APIKey"], 'b': first_bid}
-            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', params=param)
+            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', headers=requestHeaders, params=param)
             r = r.json()
 
             BeatmapSet = r[0]["beatmapset_id"]
@@ -515,14 +516,14 @@ def frontend_rankRequest_setQualified(type, bid):
             
             #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 's': bid}
             param = {'k': UserConfig["APIKey"], 's': bid}
-            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', params=param)
+            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', headers=requestHeaders, params=param)
             r = r.json()
 
             #DB등록작업
             for i in r:
                 bid = i["beatmap_id"]
                 param = {'b': bid}
-                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', params=param)
+                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', headers=requestHeaders, params=param)
                 log.info(f"{bid} 비트맵 DB에 저장중")
 
         elif type == "s":
@@ -530,14 +531,14 @@ def frontend_rankRequest_setQualified(type, bid):
             BeatmapSet = bid
             #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 's': bid}
             param = {'k': UserConfig["APIKey"], 's': bid}
-            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', params=param)
+            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', headers=requestHeaders, params=param)
             r = r.json()
 
             #DB등록작업
             for i in r:
                 bid = i["beatmap_id"]
                 param = {'b': bid}
-                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', params=param)
+                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', headers=requestHeaders, params=param)
                 log.info(f"{bid} 비트맵 DB에 저장중")
     except:
         log.error("ERROR: 반초 요청 + Redstar DB등록 작업 실패")
@@ -659,7 +660,7 @@ def SearchBeatmap(song_query, rank_select = False):
 
     for TopBeatmap in Beatmaps:
 
-        r = requests.get(f'https://cheesegull.{ServerDomain}/api/s/{TopBeatmap[2]}')
+        r = requests.get(f'https://cheesegull.{ServerDomain}/api/s/{TopBeatmap[2]}', headers=requestHeaders)
         log.info("/rank/search 쿼리 cheesegull 비트맵셋 = {} 조회 (맵 제작자 가져오는 코드)".format(TopBeatmap[2]))
         r = r.json()
 
@@ -1036,7 +1037,7 @@ def uploadVerifyVideo():
             with open(f"verifyVideos/{video[item - 1]}", "rb") as f:
                 f.seek(start)
                 file = f.read(contentLength) if start != 0 or (start == 0 and Range[1]) else f.read()
-            ptct = requests.get(f"https://b.{ServerDomain}/content-type?q=verifyVideos/{video[item - 1]}", timeout=3)
+            ptct = requests.get(f"https://b.{ServerDomain}/content-type?q=verifyVideos/{video[item - 1]}", headers=requestHeaders, timeout=3)
             ptct = ptct.json()["msg"]["Content-Type"] if ptct.status_code == 200 else "video/mp4"
             response = Response(file, status=206, mimetype=ptct)
             response.headers['Content-Disposition'] = f'inline; filename="{video[item - 1]}"'
@@ -1689,7 +1690,7 @@ def Status():
 @app.route("/js/status/api")
 def ApiStatus():
     try:
-        return jsonify(requests.get(UserConfig["ServerURL"] + "api/v1/ping", verify=False, timeout=1).json())
+        return jsonify(requests.get(UserConfig["ServerURL"] + "api/v1/ping", headers=requestHeaders, verify=False, timeout=1).json())
     except Exception as err:
         print("[ERROR] /js/status/api: ", err)
         return jsonify({
@@ -1698,7 +1699,7 @@ def ApiStatus():
 @app.route("/js/status/lets")
 def LetsStatus():
     try:
-        return jsonify(requests.get(UserConfig["LetsAPI"] + "v1/status", verify=False, timeout=1).json()) #this url to provide a predictable result
+        return jsonify(requests.get(UserConfig["LetsAPI"] + "v1/status", headers=requestHeaders, verify=False, timeout=1).json()) #this url to provide a predictable result
     except Exception as err:
         print("[ERROR] /js/status/lets: ", err)
         return jsonify({
@@ -1707,7 +1708,7 @@ def LetsStatus():
 @app.route("/js/status/bancho")
 def BanchoStatus():
     try:
-        return jsonify(requests.get(UserConfig["BanchoURL"] + "api/v1/serverStatus", verify=False, timeout=1).json()) #this url to provide a predictable result
+        return jsonify(requests.get(UserConfig["BanchoURL"] + "api/v1/serverStatus", headers=requestHeaders, verify=False, timeout=1).json()) #this url to provide a predictable result
     except Exception as err:
         print("[ERROR] /js/status/bancho: ", err)
         return jsonify({
@@ -1716,7 +1717,7 @@ def BanchoStatus():
 @app.route("/js/status/mediaserver")
 def MediaserverStatus():
     try:
-        return jsonify(requests.get(UserConfig["ServerURL"].replace("://", "://b.") + "status", headers={"User-Agent": UserConfig["GitHubRepo"], "Referer": UserConfig["ServerURL"].replace("://", "://admin.")}, timeout=3).json()) #this url to provide a predictable result
+        return jsonify(requests.get(UserConfig["ServerURL"].replace("://", "://b.") + "status", headers=requestHeaders, verify=False, timeout=3).json()) #this url to provide a predictable result
     except Exception as err:
         print("[ERROR] /js/status/mediaserver: ", err)
         return jsonify({
