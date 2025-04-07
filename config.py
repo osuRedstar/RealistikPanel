@@ -24,7 +24,7 @@ DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
     "LetsAPI" : "https://old.redstar.moe/letsapi/",
     "AvatarServer" : "https://a.redstar.moe/",
     "BanchoURL" : "https://c.redstar.moe/",
-    "BeatmapMirror" : "https://proxy.nerinyan.moe/",
+    "BeatmapMirror" : "https://api.nerinyan.moe/",
     "IpLookup" : "https://ip.zxq.co/",
     "HasRelax" : True,
     "HasAutopilot" : True,
