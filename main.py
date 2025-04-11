@@ -963,26 +963,29 @@ def TestAccountBuild():
         return newUsername
     else: return NoPerm(session, request.url)
 
-@app.route("/testaccount_migration")
-def TestAccountMigration():
+
+def tsARb(session, request, migration=True):
     if HasPrivilege(session["AccountId"], 6):
         tsac = request.args.get("ts", 1014)
         target = request.args.get("target", 1014)
         if tsac == target: return "NO"
 
-        for sc in ["", "_relax", "_ap"]:
-            log.info(f"scores{sc} 테이블 작업중...")
-            mycursor.execute(f"UPDATE scores{sc} SET userid = %s WHERE userid = %s", [target, tsac]) #ts --> origin 이식
-            mydb.commit()
-            mycursor.execute(f"SELECT id, beatmap_md5, play_mode, COUNT(*) AS cnt FROM scores{sc} WHERE userid = %s AND completed = 3 GROUP BY beatmap_md5, completed HAVING cnt > 1", [target]) #중복점수 beatmap_md5 값 가져옴
-            for i in mycursor.fetchall():
-                log.info(i)
-                mycursor.execute(f"UPDATE scores{sc} SET completed = 2 WHERE userid = %s AND beatmap_md5 = %s AND play_mode = %s AND completed = 3", [target, i[1], i[2]]) #completed 2 일괄 변경
-                mycursor.execute(f"SELECT id FROM scores{sc} WHERE userid = %s AND beatmap_md5 = %s AND play_mode = %s ORDER BY pp DESC LIMIT 1", [target, i[1], i[2]]) #pp 최고기록 id 가져옴
-                mycursor.execute(f"UPDATE scores{sc} SET completed = 3 WHERE id = %s", [mycursor.fetchone()[0]]) #베퍼포 설정
+        if migration:
+            log.info(f"migration = {migration}")
+            for sc in ["", "_relax", "_ap"]:
+                log.info(f"scores{sc} 테이블 작업중...")
+                mycursor.execute(f"UPDATE scores{sc} SET userid = %s WHERE userid = %s", [target, tsac]) #ts --> origin 이식
                 mydb.commit()
+                mycursor.execute(f"SELECT id, beatmap_md5, play_mode, COUNT(*) AS cnt FROM scores{sc} WHERE userid = %s AND completed = 3 GROUP BY beatmap_md5, completed HAVING cnt > 1", [target]) #중복점수 beatmap_md5 값 가져옴
+                for i in mycursor.fetchall():
+                    log.info(i)
+                    mycursor.execute(f"UPDATE scores{sc} SET completed = 2 WHERE userid = %s AND beatmap_md5 = %s AND play_mode = %s AND completed = 3", [target, i[1], i[2]]) #completed 2 일괄 변경
+                    mycursor.execute(f"SELECT id FROM scores{sc} WHERE userid = %s AND beatmap_md5 = %s AND play_mode = %s ORDER BY pp DESC LIMIT 1", [target, i[1], i[2]]) #pp 최고기록 id 가져옴
+                    mycursor.execute(f"UPDATE scores{sc} SET completed = 3 WHERE id = %s", [mycursor.fetchone()[0]]) #베퍼포 설정
+                    mydb.commit()
+        else: log.info(f"migration = {migration}")
 
-        CU = ChangeUsername(tsac, UserConfig["TestAccountInfo"]["id"])
+        CU = ChangeUsername(tsac, UserConfig["TestAccountInfo"]["name"])
         if not CU["code"]: return CU
         ChangePWForm(form={"accid": tsac, "newpass": UserConfig["TestAccountInfo"]["pass"]}, session={"AccountId": tsac})
         WipeAccount(tsac)
@@ -996,6 +999,12 @@ def TestAccountMigration():
         except Exception as e: log.warning(f"{e}\n\n{target} ID 는 hw_info 복원 필요 없다고 판?단함")
         return "ok"
     else: return NoPerm(session, request.url)
+
+@app.route("/testaccount_migration")
+def TestAccountMigration(): return tsARb(session, request, migration=True)
+
+@app.route("/testaccount_rollback")
+def TestAccountRollback(): return tsARb(session, request, migration=False)
 
 @app.route("/upload_verify_video", methods = ["GET", "POST"])
 def uploadVerifyVideo():

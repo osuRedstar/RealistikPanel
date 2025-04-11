@@ -8,7 +8,7 @@
         <h4>Verify video tool</h4>
     </div>
     <div class="card-body">
-        <form>
+        <form method="GET">
             <div id="divAppend" class="form-group">
                 Choose according to the format!<br>
                 <label>userID</label>
@@ -16,6 +16,7 @@
             </div>
             <button class="btn btn-danger mr-1" type="button" onclick="sendRequest('/testaccount_build')">Build TestAccount</button>
             <button class="btn btn-danger mr-1" type="button" onclick="sendRequest('/testaccount_migration')">Migration TestAccount</button>
+            <button class="btn btn-danger mr-1" type="button" onclick="sendRequest('/testaccount_rollback')">Rollback TestAccount</button>
             <br><br>
             <button class="btn btn-primary mr-1" type="button" onclick="sendRequest('/upload_verify_video')">GOTO upload_verify_video</button>
         </form>

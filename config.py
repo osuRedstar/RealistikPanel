@@ -57,7 +57,7 @@ DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
     "Email": "support@redstar.moe",
     "EmailPassword": "",
     "TestAccountInfo": {
-        "id": "test1014",
+        "name": "test1014",
         "pass": "test1014"
     }
 }
