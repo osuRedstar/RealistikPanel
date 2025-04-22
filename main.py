@@ -246,17 +246,10 @@ def foka_message():
         if not HasPrivilege(session["AccountId"]): #mixing things up eh
             return NoPerm(session, request.url)
         else:
+            fro = request.form.get('from')
             channel = request.form['channel']
             msg = request.form['message']
-
-            #Ingame #announce추가
-            params = {"k": UserConfig['FokaKey'], "to": channel, "msg": msg}
-            FokaMessage(params)
-
-            log.info("FokaMessage sent")
-            log.info("To: {}".format(channel))
-            log.info("Message: {}".format(msg))
-
+            FokaMessage({"k": UserConfig['FokaKey'], "fro": fro, "to": channel, "msg": msg}) #Ingame #announce추가
             return render_template("fokamessage.html", title="Fokamessage", data=DashData(), session=session, config=UserConfig, success=f"Successfully Send FokaMessage! \n{msg}")
             #return redirect(f"/fokamessage") #does this even work
 
@@ -618,12 +611,12 @@ def frontend_rankRequest_setQualified(type, bid):
         webhook.execute()
 
         ingamemsg = f"[{UserConfig['ServerURL']}u/999 Devlant] Qualified the map_set [https://osu.{ServerDomain}/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
-        params = {"k": UserConfig['FokaKey'], "to": "#ranked", "msg": ingamemsg}
+        params = {"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg}
         FokaMessage(params)
         log.chat("1차 인게임 공지 전송 완료")
 
         ingamemsg = f"Requested Beatmap By [{UserConfig['ServerURL']}u/{requestby_id} {requestby_username}] ({requestby_id})"
-        params = {"k": UserConfig['FokaKey'], "to": "#ranked", "msg": ingamemsg}
+        params = {"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg}
         FokaMessage(params)
         log.chat("2차 인게임 공지 전송 완료")
 
@@ -949,6 +942,7 @@ def TestAccountBuild():
         target = request.args.get("target", 0)
         if tsac == target: return "NO"
 
+        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#osu", "msg": "!vbri 1"})
         newUsername = f"test{target}"
         CU = ChangeUsername(tsac, newUsername)
         if not CU["code"]: return CU
@@ -970,6 +964,7 @@ def tsARb(session, request, migration=True):
         target = request.args.get("target", 1014)
         if tsac == target: return "NO"
 
+        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#osu", "msg": "!vbri 0"})
         if migration:
             log.info(f"migration = {migration}")
             for sc in ["", "_relax", "_ap"]:

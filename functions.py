@@ -642,6 +642,10 @@ def RankBeatmap(BeatmapNumber, BeatmapId, ActionName, session):
 def FokaMessage(params) -> None:
     """Sends a fokabot message."""
     requests.get(f"{UserConfig['BanchoURL']}api/v1/fokabotMessage", headers=requestHeaders, params=params)
+    log.info("FokaMessage sent")
+    log.info(f"fro : {params['fro']}")
+    log.info(f"To: {params['to']}")
+    log.info(f"Message: {params['msg']}")
 
 def Webhook(BeatmapId, ActionName, session, oldRank):
     """Beatmap rank webhook."""
