@@ -1510,7 +1510,7 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
 
                 Dicti["Nodata"] = 0
 
-                Mods = ModToText(x[7])
+                Mods = readableMods(x[7])
                 if Mods == "":
                     Dicti["SongName"] = SongName
 
