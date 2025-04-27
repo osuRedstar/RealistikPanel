@@ -611,13 +611,11 @@ def frontend_rankRequest_setQualified(type, bid):
         webhook.execute()
 
         ingamemsg = f"[{UserConfig['ServerURL']}u/999 Devlant] Qualified the map_set [https://osu.{ServerDomain}/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
-        params = {"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg}
-        FokaMessage(params)
+        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg})
         log.chat("1차 인게임 공지 전송 완료")
 
         ingamemsg = f"Requested Beatmap By [{UserConfig['ServerURL']}u/{requestby_id} {requestby_username}] ({requestby_id})"
-        params = {"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg}
-        FokaMessage(params)
+        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg})
         log.chat("2차 인게임 공지 전송 완료")
 
         return f"{BeatmapSet} 비트맵셋 퀄파로 변경 완료"

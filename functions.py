@@ -639,7 +639,7 @@ def RankBeatmap(BeatmapNumber, BeatmapId, ActionName, session):
     mydb.commit()
     Webhook(BeatmapId, ActionName, session, oldRank)
 
-def FokaMessage(params) -> None:
+def FokaMessage(params: dict) -> None:
     """Sends a fokabot message."""
     requests.get(f"{UserConfig['BanchoURL']}api/v1/fokabotMessage", headers=requestHeaders, params=params)
     log.info("FokaMessage sent")
@@ -752,8 +752,7 @@ def Webhook(BeatmapId, ActionName, session, oldRank):
     RAPLog(session["AccountId"], f"{Logtext} the beatmap {mapa[0]} ({BeatmapId})")
     #ingamemsg = f"[https://{UserConfig['ServerURL']}u/{session['AccountId']} {session['AccountName']}] {Logtext.lower()} the map [https://redstar.moe/b/{BeatmapId} {mapa[0]}]  [osu://dl/{mapa[1]} osu!direct]"
     ingamemsg = f"[{UserConfig['ServerURL']}u/{session['AccountId']} {session['AccountName']}] {Logtext.lower()} the map [https://osu.redstar.moe/b/{BeatmapId} {mapa[0]}]  [osu://b/{BeatmapId} osu!direct]"
-    params = {"k": UserConfig['FokaKey'], "to": "#ranked", "msg": ingamemsg}
-    FokaMessage(params)
+    FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg})
 
 def RAPLog(UserID=999, Text="forgot to assign a text value :/"):
     """Logs to the RAP log."""
@@ -1406,8 +1405,7 @@ def ResUnTrict(id : int, note: str = None):
         TheReturn = False
     else:
         wip = "Your account has been restricted! Check with staff to see whats up."
-        params = {"k": UserConfig['FokaKey'], "to": GetUser(id)["Username"], "msg": wip}
-        FokaMessage(params)
+        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": GetUser(id)["Username"], "msg": wip})
         TimeBan = round(time.time())
         mycursor.execute("UPDATE users SET privileges = 2, ban_datetime = %s WHERE id = %s", [TimeBan, id]) #restrict em bois
         RemoveFromLeaderboard(id)
@@ -1451,8 +1449,7 @@ def FreezeHandler(id : int):
         mycursor.execute("UPDATE users SET frozen = 1, freezedate = %s WHERE id = %s", [freezedateunix, id])
         TheReturn = True
         wip = f"Your account has been frozen. Please join the {UserConfig['ServerName']} Discord and submit a liveplay to a staff member in order to be unfrozen"
-        params = {"k": UserConfig['FokaKey'], "to": GetUser(id)["Username"], "msg": wip}
-        FokaMessage(params)
+        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": GetUser(id)["Username"], "msg": wip})
     mydb.commit()
     return TheReturn
    
@@ -2091,8 +2088,7 @@ def SetBMAPSetStatus(BeatmapSet: int, Staus: int, session):
     #Ingame #announce추가
     #ingamemsg = f"[https://{UserConfig['ServerURL']}u/{session['AccountId']} {session['AccountName']}] {TitleText.lower()} the map_set [https://redstar.moe/b/{MapData[1]} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
     ingamemsg = f"[{UserConfig['ServerURL']}u/{session['AccountId']} {session['AccountName']}] {TitleText.lower()} the map_set [https://osu.redstar.moe/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
-    params = {"k": UserConfig['FokaKey'], "to": "#ranked", "msg": ingamemsg}
-    FokaMessage(params)
+    FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg})
 
 
 def FindUserByUsername(User: str, Page: int, filterUsers: list=None):
