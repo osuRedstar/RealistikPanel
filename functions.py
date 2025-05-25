@@ -2753,7 +2753,7 @@ def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
         print(" * Posting webhook!")
     return sc
 
-def unameIsascii(username): return all(ord(c) < 128 for c in username)
+def unameIsascii(username): return all(ord(c) < 128 for c in username) if True else username.isascii()
 
 def sendUsernameresetMail(session, userID):
     mycursor.execute("SELECT username, email FROM users WHERE id = %s", [userID])
@@ -2869,7 +2869,7 @@ def sendEmail(session, nick, to_email, subject, msg, MIMEType):
 
     msg = MIMEMultipart()
     msg['From'] = f'RedstarOSU! Team {session["AccountName"]} <{sender_email}>'
-    if nick and not nick.isascii(): nick = str(Header(nick, 'utf-8').encode())
+    if nick and not unameIsascii(nick): nick = str(Header(nick, 'utf-8').encode())
     msg['To'] = f"{nick} <{to_email}>" if nick else to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, MIMEType))
