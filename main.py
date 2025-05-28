@@ -446,14 +446,14 @@ def RankMap(id):
     check_beatmap = mycursor.fetchone()
 
     if check_beatmapSet is not None and check_beatmap is not None:
-        log.debug("{} 는 비트맵셋, 비트맵 둘다 존재함".format(id))
+        log.debug(f"{id} 는 비트맵셋, 비트맵 둘다 존재함")
         log.debug("비트맵 선택 페이지 리다이렉트")
         return redirect(f"/rank/select/{id}")
 
     #비트맵셋 요청시 리다이렉트
     if check_beatmapSet is not None:
-        log.warning("/rank/{} 에서 비트맵셋 감지.".format(id))
-        log.warning("/rank/{} 로 리다이렉트.".format(check_beatmapSet[0]))
+        log.warning(f"/rank/{id} 에서 비트맵셋 감지.")
+        log.warning(f"/rank/{check_beatmapSet[0]} 로 리다이렉트.")
         return redirect(f"/rank/{check_beatmapSet[0]}")
 
     if HasPrivilege(session["AccountId"], 3):

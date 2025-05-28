@@ -475,8 +475,8 @@ def GetBmapInfo(id):
                 "Difficulty" : "0",
                 "BeatmapsetId" : "",
                 "BeatmapId" : 0,
-                #rankedby 추가
                 "Rankedby" : "",
+                "Requestby" : "",
                 "Cover" : "https://a.redstar.moe/" #why this%s idk
             }]
     else:
@@ -487,10 +487,9 @@ def GetBmapInfo(id):
     BeatmapList = []
 
     for beatmap in BMS_Data:
-
-        mycursor.execute("SELECT rankedby FROM beatmaps WHERE beatmap_id = %s", [str(beatmap[4])])
-        rankedby = mycursor.fetchall()
-        log.info("BeatmapID = {}, rankedby = {}".format(str(beatmap[4]), rankedby[0][0]))
+        mycursor.execute("SELECT b.rankedby, COALESCE(rr.userid, 'Bancho') AS requestby FROM beatmaps AS b LEFT JOIN rank_requests AS rr ON b.beatmap_id = rr.bid WHERE b.beatmap_id = %s", [str(beatmap[4])])
+        RRby = mycursor.fetchall()
+        log.info(f"BeatmapID = {beatmap[4]}, rankedby = {RRby[0][0]}, requestby = {RRby[0][1]}")
 
         thing = { 
             "SongName" : beatmap[0],
@@ -499,10 +498,9 @@ def GetBmapInfo(id):
             "BeatmapsetId" : str(beatmap[3]),
             "BeatmapId" : str(beatmap[4]),
             "Ranked" : beatmap[5],
-            #rankedby 추가
-            "Rankedby" : rankedby[0][0],
+            "Rankedby" : RRby[0][0],
+            "Requestby" : RRby[0][1],
             "Cover" : f"https://b.redstar.moe/bg/{beatmap[4]}"
-            #"Cover" : f"https://assets.ppy.sh/beatmaps/{beatmap[3]}/covers/cover.jpg"
         }
         
         BeatmapList.append(thing)

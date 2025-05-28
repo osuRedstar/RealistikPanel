@@ -52,21 +52,24 @@
                 <p>Change the ranking status for this song!</p>
 
                 <!-- Rankedby 추가 -->
-                {% if beatmap['Rankedby'] == "Bancho" %}
-                    <div>
-                        <a style="color: yellow;">Beatmap Ranked by </a>
+                <div>
+                    <a style="color: yellow;">Beatmap Ranked by </a>
+                    {% if beatmap['Rankedby'] == "Bancho" %}
                         <a style="color: pink;">{{ beatmap['Rankedby'] }}</a>
-                    </div>
-                    <br>
-                    <br>
-                {% else %}
-                    <div>
-                        <a style="color: yellow;">Beatmap Ranked by </a>
+                    {% else %}
                         <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ beatmap['Rankedby'] }}">{{ beatmap['Rankedby'] }}</a>
-                    </div>
-                    <br>
-                    <br>
-                {% endif %}
+                    {% endif %}
+                </div>
+                <!-- Requestby 추가 -->
+                <div>
+                    <a style="color: yellow;">Beatmap Request by </a>
+                    {% if beatmap['Requestby'] == "Bancho" %}
+                        <a style="color: pink;">----</a>
+                    {% else %}
+                        <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ beatmap['Requestby'] }}">{{ beatmap['Requestby'] }}</a>
+                    {% endif %}
+                </div>
+                <br>
 
                 <form action="/rank/{{ Id }}" method="post">
                     <label>Beatmap ID</label>
@@ -134,21 +137,24 @@
                 <p>Change the ranking status for this song!</p>
 
                 <!-- Rankedby 추가 -->
-                {% if beatmap['Rankedby'] == "Bancho" %}
-                    <div>
-                        <a style="color: yellow;">Beatmap Ranked by </a>
+                <div>
+                    <a style="color: yellow;">Beatmap Ranked by </a>
+                    {% if beatmap['Rankedby'] == "Bancho" %}
                         <a style="color: pink;">{{ beatmap['Rankedby'] }}</a>
-                    </div>
-                    <br>
-                    <br>
-                {% else %}
-                    <div>
-                        <a style="color: yellow;">Beatmap Ranked by </a>
+                    {% else %}
                         <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ beatmap['Rankedby'] }}">{{ beatmap['Rankedby'] }}</a>
-                    </div>
-                    <br>
-                    <br>
-                {% endif %}
+                    {% endif %}
+                </div>
+                <!-- Requestby 추가 -->
+                <div>
+                    <a style="color: yellow;">Beatmap Request by </a>
+                    {% if beatmap['Requestby'] == "Bancho" %}
+                        <a style="color: pink;">----</a>
+                    {% else %}
+                        <a target="_blank" style="color: aqua;" href="https://redstar.moe/u/{{ beatmap['Requestby'] }}">{{ beatmap['Requestby'] }}</a>
+                    {% endif %}
+                </div>
+                <br>
 
                 <form action="/rank/{{ Id }}" method="post">
                     <label>Beatmap ID</label>
