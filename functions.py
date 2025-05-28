@@ -487,7 +487,7 @@ def GetBmapInfo(id):
     BeatmapList = []
 
     for beatmap in BMS_Data:
-        mycursor.execute("SELECT b.rankedby, COALESCE(rr.userid, 'Bancho') AS requestby FROM beatmaps AS b LEFT JOIN rank_requests AS rr ON b.beatmap_id = rr.bid WHERE b.beatmap_id = %s", [str(beatmap[4])])
+        mycursor.execute("SELECT b.rankedby, COALESCE(rr.userid, 'Bancho') AS requestby FROM beatmaps AS b LEFT JOIN rank_requests AS rr ON b.beatmap_id = rr.bid WHERE b.beatmap_id = %s AND rr.active = 1", [str(beatmap[4])])
         RRby = mycursor.fetchall()
         log.info(f"BeatmapID = {beatmap[4]}, rankedby = {RRby[0][0]}, requestby = {RRby[0][1]}")
 
