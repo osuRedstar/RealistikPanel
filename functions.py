@@ -25,7 +25,9 @@ from email.mime.multipart import MIMEMultipart
 from email.header import Header
 import string
 import random
+import traceback
 
+def exceptionE(msg=""): e = traceback.format_exc(); log.error(f"{msg} \n{e}"); return e
 requestHeaders = {"User-Agent": UserConfig["GitHubRepo"], "Referer": UserConfig["ServerURL"].replace("://", "://admin.")}
 
 init() #initialises colourama for colours
@@ -2241,7 +2243,7 @@ def GetRankRequests(Page: int):
     """Gets all the rank requests. This may require some optimisation."""
     Page -= 1
     Offset = UserConfig["PageSize"] * Page #for the page system to work
-    mycursor.execute("SELECT id, userid, bid, type, time, blacklisted FROM rank_requests WHERE blacklisted = 0 LIMIT %s OFFSET %s", [UserConfig['PageSize'], Offset])
+    mycursor.execute("SELECT id, userid, bid, time, blacklisted FROM rank_requests WHERE blacklisted = 0 AND active = 1 LIMIT %s OFFSET %s", [UserConfig['PageSize'], Offset])
     RankRequests = mycursor.fetchall()
     #turning what we have so far into
     TheRequests = []
@@ -2316,9 +2318,9 @@ def GetRankRequests(Page: int):
     TheRequests = SplitList(TheRequests)
     return TheRequests
 
-def DeleteBmapReq(Req):
+def DeactiveBmapReq(Req):
     """Deletes the beatmap request."""
-    mycursor.execute("DELETE FROM rank_requests WHERE id = %s LIMIT 1", [Req])
+    mycursor.execute("UPDATE rank_requests SET active = 0 WHERE id = %s", [Req])
     mydb.commit()
 
 def UserPageCount(filterUsers: list=None):

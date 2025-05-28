@@ -9,6 +9,7 @@ import os
 from updater import *
 from threading import Thread
 import logging
+import requests
 
 #log함수? 추가
 from lets_common_log import logUtils as log
@@ -488,143 +489,7 @@ def RankFrom():
             return redirect(f"/rank/{request.form['bmapid']}") #does this even work
 
 
-
-from discord_webhook import DiscordWebhook, DiscordEmbed
-@app.route("/frontend/rank_request/set_qualified/<type>/<bid>")
-def frontend_rankRequest_setQualified(type, bid):
-    first_bid = bid
-    BeatmapSet = 0
-    log.info("홈페이지에서 리퀘 도착")
-    try:
-        if type == "b":
-            log.info(f"비트맵 아이디 감지 {bid}")
-            #비트맵셋 아이디 요청
-            #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 'b': first_bid}
-            param = {'k': UserConfig["APIKey"], 'b': first_bid}
-            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', headers=requestHeaders, params=param)
-            r = r.json()
-
-            BeatmapSet = r[0]["beatmapset_id"]
-            bid = r[0]["beatmapset_id"]
-            
-            #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 's': bid}
-            param = {'k': UserConfig["APIKey"], 's': bid}
-            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', headers=requestHeaders, params=param)
-            r = r.json()
-
-            #DB등록작업
-            for i in r:
-                bid = i["beatmap_id"]
-                param = {'b': bid}
-                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', headers=requestHeaders, params=param)
-                log.info(f"{bid} 비트맵 DB에 저장중")
-
-        elif type == "s":
-            log.info(f"비트맵셋 아이디 감지 {bid}")
-            BeatmapSet = bid
-            #param = {'k': '4597ac5b5d5f0b3dace4103c6ae0f9a69fccce6b', 's': bid}
-            param = {'k': UserConfig["APIKey"], 's': bid}
-            r = requests.get('https://osu.ppy.sh/api/get_beatmaps', headers=requestHeaders, params=param)
-            r = r.json()
-
-            #DB등록작업
-            for i in r:
-                bid = i["beatmap_id"]
-                param = {'b': bid}
-                requests.get(f'https://old.{ServerDomain}/letsapi/v1/pp', headers=requestHeaders, params=param)
-                log.info(f"{bid} 비트맵 DB에 저장중")
-    except:
-        log.error("ERROR: 반초 요청 + Redstar DB등록 작업 실패")
-        return "ERROR: 반초 요청 + Redstar DB등록 작업 실패"
-
-    try:
-        if type == "b":
-            mycursor.execute("SELECT ranked, ranked_status_freezed FROM beatmaps WHERE beatmap_id = %s", [first_bid])
-            is_requested = mycursor.fetchall()
-            log.debug(f"is_requested = {is_requested}")
-        elif type == "s":
-            mycursor.execute("SELECT ranked, ranked_status_freezed FROM beatmaps WHERE beatmapset_id = %s", [first_bid])
-            is_requested = mycursor.fetchall()
-            log.debug(f"is_requested = {is_requested}")
-
-        if is_requested[0][0] is not 0 and is_requested[0][1] is not 0:
-            log.warning(f"{type}/{first_bid} 값이 리퀘스트에 존재함?")
-            log.info("작업중지함")
-            return f"{type}/{first_bid} 값이 리퀘스트에 존재함?, 작업중지함"
-        else:
-            log.info(f"{type}/{first_bid} 값이 리퀘스트에 존재하지 않음?")
-            log.info("다음 작업으로 넘어감")
-    except:
-        log.error("ERROR: 리퀘여부 확인 작업 실패")
-        return "ERROR: 리퀘여부 확인 작업 실패"
-
-    try:
-        mycursor.execute("SELECT userid FROM rank_requests WHERE bid = %s AND type = %s", [first_bid, type])
-        requestby_id = mycursor.fetchone()[0]
-
-        mycursor.execute("SELECT username FROM users WHERE id = %s", [requestby_id])
-        requestby_username = mycursor.fetchone()[0]
-
-        #에러나서 type s 추가
-        if type == "b":
-            mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", [first_bid])
-            is_unranked = mycursor.fetchone()[0]
-        elif type == "s":
-            mycursor.execute("SELECT ranked FROM beatmaps WHERE beatmap_id = %s", [bid])
-            is_unranked = mycursor.fetchone()[0]
-
-        if is_unranked == 0:
-            #퀄파로 변경
-            mycursor.execute("UPDATE beatmaps SET rankedby = 999, ranked = 4, ranked_status_freezed = 1 WHERE beatmapset_id = %s", [BeatmapSet])
-            mydb.commit()
-            log.info(f"리퀘 비트맵셋 {BeatmapSet} 퀄파 변경")
-        elif is_unranked == 5:
-            log.warning("럽드 확인함")
-            mycursor.execute("UPDATE beatmaps SET ranked_status_freezed = 1 WHERE beatmapset_id = %s", [BeatmapSet])
-            mydb.commit()
-            log.info("럽드 ranked_status_freezed 1로 변경")
-        else:
-            log.warning("퀄파로 변경중 언랭크가 아닌 값을 발견함")
-    except:
-        log.error("ERROR: 리퀘요청자 가져오기 + 퀄파 변경 작업 실패")
-        log.debug(f"requestby_id = {requestby_id}")
-        log.debug(f"requestby_username = {requestby_username}")
-        log.debug(f"is_unranked = {is_unranked}")
-        return "ERROR: 리퀘요청자 가져오기 + 퀄파 변경록 작업 실패"
-
-    try:
-        mycursor.execute("SELECT song_name, beatmap_id FROM beatmaps WHERE beatmapset_id = %s LIMIT 1", [BeatmapSet])
-        MapData = mycursor.fetchone()
-        #Getting bmap name without diff
-        BmapName = MapData[0].split("[")[0].rstrip() #¯\_(ツ)_/¯ might work
-
-        URL = UserConfig["Webhook-rankreq"]
-        webhook = DiscordWebhook(url=URL)
-        embed = DiscordEmbed(description=f"Status Changed by Devlant. <@&904084069413965944>\nRequested by {requestby_username} ({requestby_id})", color=242424) #this is giving me discord.py vibes
-        embed.set_author(name=f"{BmapName} was just Qualified. (Beatmap_Set)", url=f"https://admin.{ServerDomain}/rank/{MapData[1]}", icon_url=f"https://a.{ServerDomain}/999") #will rank to random diff but yea
-        #embed.set_author(name=f"{mapa[0]} was just Qualified (Beatmap_Set)", url=f"{UserConfig['ServerURL']}b/{bid}", icon_url=f"{UserConfig['AvatarServer']}{999}")
-        embed.set_footer(text="via RealistikPanel! With Frontend")
-        #embed.set_image(url=f"https://subapi.nerinyan.moe/bg/-{BeatmapSet}")
-        embed.set_image(url=f"https://b.{ServerDomain}/bg/{first_bid}")
-        webhook.add_embed(embed)
-        print(" * Posting webhook!")
-        webhook.execute()
-
-        ingamemsg = f"[{UserConfig['ServerURL']}u/999 Devlant] Qualified the map_set [https://osu.{ServerDomain}/s/{BeatmapSet} {BmapName}]  [osu://dl/{BeatmapSet} osu!direct]"
-        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg})
-        log.chat("1차 인게임 공지 전송 완료")
-
-        ingamemsg = f"Requested Beatmap By [{UserConfig['ServerURL']}u/{requestby_id} {requestby_username}] ({requestby_id})"
-        FokaMessage({"k": UserConfig['FokaKey'], "fro": None, "to": "#ranked", "msg": ingamemsg})
-        log.chat("2차 인게임 공지 전송 완료")
-
-        return f"{BeatmapSet} 비트맵셋 퀄파로 변경 완료"
-    except:
-        log.error("ERROR: 디코 웹훅 + 인게임 알림 작업 실패")
-        return "ERROR: 디코 웹훅 + 인게임 알림 작업 실패"
-
 #/rank/search 추가
-import requests
 def SearchBeatmap(song_query, rank_select = False):
     log.debug("/rank/<id>에서 DB에 bid, bsid 둘다 존재할 겅우, rank_select = {}".format(rank_select))
     #/rank/<id>에서 DB에 bid, bsid 둘다 존재할 겅우
@@ -1973,11 +1838,8 @@ def UnrankSet(BeatmapSet: int):
 
 @app.route("/action/deleterankreq/<ReqID>")
 def MarkRequestAsDone(ReqID):
-    if HasPrivilege(session["AccountId"], 3):
-        DeleteBmapReq(ReqID)
-        return redirect("/rankreq/1")
-    else:
-        return NoPerm(session, request.url)
+    if HasPrivilege(session["AccountId"], 3): DeactiveBmapReq(ReqID); return redirect("/rankreq/1")
+    else: return NoPerm(session, request.url)
 
 @app.route("/action/kickclan/<AccountID>")
 def KickClanRoute(AccountID):

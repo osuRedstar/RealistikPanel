@@ -29,7 +29,6 @@ DefaultConfig = { #THESE ARE DEFAULT OPRIONS FOR THE CONFIG.
     "HasRelax" : True,
     "HasAutopilot" : True,
     "AvatarDir" : "/mnt/b/redstar/avatar-server/avatar",
-    "Webhook-rankreq": "",
     "Webhook-std": "", #Discord webhook for posting newly ranked maps
     "Webhook-taiko": "",
     "Webhook-ctb": "",
