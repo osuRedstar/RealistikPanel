@@ -1739,15 +1739,15 @@ def PrivDeath(PrivID:int):
 @app.route("/event/scorehunt_rx-r3m/1747333800-1749067200")
 def event_Scorehunt_rx_r3m_1747333800_1749067200():
     isrx = request.args.get("rx")
-    s = "scores"; t = "replays"; md5 = "b890b9de204a897c7abbe0b4e0b80a1c"
+    s = "scores"; o = "score"; t = "replays"; md5 = "b890b9de204a897c7abbe0b4e0b80a1c"
     if not isrx: return redirect(f"https://admin.{ServerDomain}/event/scorehunt_rx-r3m/1747333800-1749067200?rx=0")
     elif isrx.isdigit() and int(isrx) == 1:
-        s += "_relax"; t += "_relax"; md5 = "3a1a0a2ba948568bec47151acf6133eb"
-    t = [s, t]
+        s += "_relax"; o = "pp"; t += "_relax"; md5 = "3a1a0a2ba948568bec47151acf6133eb"
+    t = [s, o, t]
     SQL = f"""
         SELECT s.time, s.userid, u.username, s.id, b.ranked, s.beatmap_md5, b.beatmap_id, b.song_name, s.mods, s.accuracy, s.score, s.pp
         FROM {s} AS s LEFT JOIN users AS u ON u.id = s.userid LEFT JOIN beatmaps AS b ON b.beatmap_md5 = s.beatmap_md5
-        WHERE s.beatmap_md5 = '{md5}' AND time BETWEEN 1747333800 AND 1749067200 AND play_mode = 0 AND completed = 3 ORDER BY pp DESC
+        WHERE s.beatmap_md5 = '{md5}' AND time BETWEEN 1747333800 AND 1749067200 AND play_mode = 0 AND completed = 3 ORDER BY {o} DESC
     """
     mycursor.execute(SQL)
     plays = mycursor.fetchall()
@@ -1783,7 +1783,7 @@ def event_Scorehunt_rx_r3m_1747333800_1749067200():
         Dicti["pp"] = round(x[11], 2)
         if x[7] is None: Dicti["Accuracy"] = f"Beatmap_md5 = {x[5]})  ({Dicti['Accuracy']}"
         ReadableArray.append(Dicti)
-    return render_template("event_Scorehunt_rx-r3m.html", data=DashData(), session=session, title="Scorehunt_rx-r3m (1747333800-1749067200)", config=UserConfig, StatData = ReadableArray, type = t)
+    return render_template("event/Scorehunt_rx-r3m.html", data=DashData(), session=session, title="Scorehunt_rx-r3m (1747333800-1749067200)", config=UserConfig, StatData = ReadableArray, type = t)
 
 #beatmaps.rankedby 변경함수
 def beatmap_rankedby(text, bm):
