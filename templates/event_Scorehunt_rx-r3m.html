@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div class="card-header">
+        <style>.icons {margin: 0px 5px; width: 32px; height: 32px;}</style>
+        <h4>{{ title }} | {{ type[0] }} |</h4>
+        <a title="Discord" target="_blank" href="https://discord.com/channels/904047180912947250/904048388163641376/1372641416391426120" class="icons" style="background-image: url('https://cdn.prod.website-files.com/6257adef93867e50d84d30e2/62fddf0fde45a8baedcc7ee5_847541504914fd33810e70a0ea73177e%20(2)-1.png');"></a>
+        <a title="Twitter" target="_blank" href="https://x.com/RedstarOSU/status/1923092227233898677" class="icons" style="background-image: url('https://x.com/favicon.ico');"></a>
+        <a title="bluesky" target="_blank" href="https://bsky.app/profile/redstar.moe/post/3lpa7i2bmrk25" class="icons" style="background-image: url('https://web-cdn.bsky.app/static/favicon-32x32.png');"></a>
+    </div>
+    <div class="card-body">
+        <br>
+        <form style="text-align: center;">
+            <select style="width: 200px; text-align: center;" class="form-control" id="mode_box" name="language" onchange="chageLangSelect()">
+                <option value="0" selected>=== Select Mode ===</option>
+                <option id="vn" value="0">Vanilla</option>
+                <option id="rx" value="1">Relax</option>
+            </select>
+        </form>
+        <br>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Time</th>
+                    <th scope="col">Player</th>
+
+                    <th scope="col">Replay</th>
+                    <th scope="col">ranked_status</th>
+
+                    <th scope="col">Song</th>
+                    <th scope="col">Score</th>
+                    <th scope="col">PP</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for play in StatData %}
+
+                <!-- Nodata on DB -->
+                {% if play["Nodata"] != 0 %}
+                    <script>
+                        alert("/stats \n\n최근플레이 함수실행중 {{ play['Nodata'] }}개의 비트맵이 DB에 존재하지 않습니다. \n\nDuring the execution of the RecentPlays function, {{ play['Nodata'] }}beatmap does not exist in the DB.")
+                    </script>
+                {% endif %}
+                <!-- 누락곡 목록 -->
+                {% if play["Nodata_SongName"] == "Invalid..." %}
+                    <script>
+                        console.log("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+                        alert("{{ play['Time'] }}  {{ play['Player'] }} - {{ play['SongName'] }} {{ play['Accuracy'] }}%  {{ play['Score'] }} {{ play['pp'] }}pp")
+                    </script>
+                {% endif %}
+
+                <tr>
+                    <td>{{ play["Time"] }}</td>
+
+                    <td>
+                        <a href="{{ config['ServerURL'] }}u/{{ play['PlayerId'] }}" target="_blank">
+                            {{ play["Player"] }}
+                        </a>
+                    </td>
+
+                    <td>
+                        <a style="color: aqua;" target="_blank" href="https://redstar.moe/web/{{ type[1] }}/{{ play['scoreID'] }}">
+                            Download
+                        </a>
+                    </td>
+
+                    <td>
+                        <span class="ranked_status" style="color: red;">
+                            [{{ play["ranked"][0] }}]
+                        </span>
+                    </td>
+
+                    <td>
+                        <a style="color: #dadada;" target="_blank" href="{{ config['ServerURL'] }}b/{{ play['beatmapID'] }}" class="">
+                            {{ play["SongName"] }}  <i>({{ play["Accuracy"] }}%)</i>
+                        </a>
+                        <span style="color: pink;">
+                            {{ play["gameMode"] }}
+                        </span>
+                    </td>
+
+                    <td>{{ play["Score"] }}</td>
+
+                    <td>{{ play["pp"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+            <script>
+                rs = document.getElementsByClassName("ranked_status")
+                for (let i = 0; i < rs.length; i++) {
+                    if (rs[i].innerText == "[Ranked]") {
+                        rs[i].style.color = "#6777ef"
+                    }
+                    if (rs[i].innerText == "[Loved]") {
+                        rs[i].style.color = "#AA336A"
+                    }
+                    if (rs[i].innerText == "[Approved]") {
+                        rs[i].style.color = "green"
+                    }
+                    if (rs[i].innerText == "[Qualified]") {
+                        rs[i].style.color = "green"
+                    }
+                    if (rs[i].innerText == "[Unranked]") {
+                        rs[i].style.color = "red"
+                    }
+                }
+
+                function chageLangSelect(){
+                    location.replace(`?rx=${document.getElementById("mode_box").value}`);
+                }
+            </script>
+
+        </table>
+    </div>
+    <div class="card-footer">
+        RealistikPanel
+    </div>
+</div>
+{% endblock %}
