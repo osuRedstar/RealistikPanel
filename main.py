@@ -38,56 +38,6 @@ def home():
     if session["LoggedIn"]: return redirect(url_for("dash"))
     else: return redirect(url_for("login"))
 
-@app.route("/event/scorehunt_rx-r3m/1747333800-1749067200")
-def event_Scorehunt_rx_r3m_1747333800_1749067200():
-    isrx = request.args.get("rx")
-    s = "scores"; t = "replays"; md5 = "b890b9de204a897c7abbe0b4e0b80a1c"
-    if not isrx: return redirect(f"https://admin.{ServerDomain}/event/scorehunt_rx-r3m/1747333800-1749067200?rx=0")
-    elif isrx.isdigit() and int(isrx) == 1:
-        s += "_relax"; t += "_relax"; md5 = "3a1a0a2ba948568bec47151acf6133eb"
-    t = [s, t]
-    SQL = f"""
-        SELECT s.time, s.userid, u.username, s.id, b.ranked, s.beatmap_md5, b.beatmap_id, b.song_name, s.mods, s.accuracy, s.score, s.pp
-        FROM {s} AS s LEFT JOIN users AS u ON u.id = s.userid LEFT JOIN beatmaps AS b ON b.beatmap_md5 = s.beatmap_md5
-        WHERE s.beatmap_md5 = '{md5}' AND time BETWEEN 1747333800 AND 1749067200 AND play_mode = 0 AND completed = 3 ORDER BY pp DESC
-    """
-    mycursor.execute(SQL)
-    plays = mycursor.fetchall()
-    ReadableArray = []
-    for x in plays:
-        Dicti = {}
-        Dicti["Nodata"] = 0
-        Dicti["Timestamp"] = x[0]
-        Dicti["Time"] = TimestampConverter(x[0])
-        Dicti["PlayerId"] = x[1]
-        Dicti["Player"] = x[2]
-        Dicti["scoreID"] = x[3]
-        try:
-            if x[4] == 2: Dicti["ranked"] = ["Ranked", 2]
-            elif x[4] == 5: Dicti["ranked"] = ["Loved", 5]
-            elif x[4] == 3: Dicti["ranked"] = ["Approved", 3]
-            elif x[4] == 4: Dicti["ranked"] = ["Qualified", 4]
-            elif x[4] == 0: Dicti["ranked"] = ["Unranked", 0]
-            elif x[4] is None: raise
-        except:  Dicti["ranked"] = ["Invalid...", 0]
-        try:
-            Dicti["beatmapID"] = x[6]
-            if x[6] is None: raise
-        except:
-            log.error(x)
-            Dicti["Nodata"] += 1; Dicti["beatmapID"] = x[5]; Dicti["Nodata_SongName"] = x[7]
-        Mods = readableMods(x[8])
-        if Mods == "":
-            Dicti["SongName"] = x[7]
-        else: Dicti["SongName"] = x[7] + " +" + Mods
-        Dicti["Accuracy"] = round(x[9], 2)
-        Dicti["Score"] = f'{x[10]:,}'
-        Dicti["pp"] = round(x[11], 2)
-        if x[7] is None: Dicti["Accuracy"] = f"Beatmap_md5 = {x[5]})  ({Dicti['Accuracy']}"
-        ReadableArray.append(Dicti)
-    return render_template("event_Scorehunt_rx-r3m.html", data=DashData(), session=session, title="Scorehunt_rx-r3m (1747333800-1749067200)", config=UserConfig, StatData = ReadableArray, type = t)
-
-
 @app.route("/dash/")
 def dash():
     if HasPrivilege(session["AccountId"]):
@@ -1786,6 +1736,54 @@ def PrivDeath(PrivID:int):
     else:
         return NoPerm(session, request.url)
 
+@app.route("/event/scorehunt_rx-r3m/1747333800-1749067200")
+def event_Scorehunt_rx_r3m_1747333800_1749067200():
+    isrx = request.args.get("rx")
+    s = "scores"; t = "replays"; md5 = "b890b9de204a897c7abbe0b4e0b80a1c"
+    if not isrx: return redirect(f"https://admin.{ServerDomain}/event/scorehunt_rx-r3m/1747333800-1749067200?rx=0")
+    elif isrx.isdigit() and int(isrx) == 1:
+        s += "_relax"; t += "_relax"; md5 = "3a1a0a2ba948568bec47151acf6133eb"
+    t = [s, t]
+    SQL = f"""
+        SELECT s.time, s.userid, u.username, s.id, b.ranked, s.beatmap_md5, b.beatmap_id, b.song_name, s.mods, s.accuracy, s.score, s.pp
+        FROM {s} AS s LEFT JOIN users AS u ON u.id = s.userid LEFT JOIN beatmaps AS b ON b.beatmap_md5 = s.beatmap_md5
+        WHERE s.beatmap_md5 = '{md5}' AND time BETWEEN 1747333800 AND 1749067200 AND play_mode = 0 AND completed = 3 ORDER BY pp DESC
+    """
+    mycursor.execute(SQL)
+    plays = mycursor.fetchall()
+    ReadableArray = []
+    for x in plays:
+        Dicti = {}
+        Dicti["Nodata"] = 0
+        Dicti["Timestamp"] = x[0]
+        Dicti["Time"] = TimestampConverter(x[0])
+        Dicti["PlayerId"] = x[1]
+        Dicti["Player"] = x[2]
+        Dicti["scoreID"] = x[3]
+        try:
+            if x[4] == 2: Dicti["ranked"] = ["Ranked", 2]
+            elif x[4] == 5: Dicti["ranked"] = ["Loved", 5]
+            elif x[4] == 3: Dicti["ranked"] = ["Approved", 3]
+            elif x[4] == 4: Dicti["ranked"] = ["Qualified", 4]
+            elif x[4] == 0: Dicti["ranked"] = ["Unranked", 0]
+            elif x[4] is None: raise
+        except:  Dicti["ranked"] = ["Invalid...", 0]
+        try:
+            Dicti["beatmapID"] = x[6]
+            if x[6] is None: raise
+        except:
+            log.error(x)
+            Dicti["Nodata"] += 1; Dicti["beatmapID"] = x[5]; Dicti["Nodata_SongName"] = x[7]
+        Mods = readableMods(x[8])
+        if Mods == "":
+            Dicti["SongName"] = x[7]
+        else: Dicti["SongName"] = x[7] + " +" + Mods
+        Dicti["Accuracy"] = round(x[9], 2)
+        Dicti["Score"] = f'{x[10]:,}'
+        Dicti["pp"] = round(x[11], 2)
+        if x[7] is None: Dicti["Accuracy"] = f"Beatmap_md5 = {x[5]})  ({Dicti['Accuracy']}"
+        ReadableArray.append(Dicti)
+    return render_template("event_Scorehunt_rx-r3m.html", data=DashData(), session=session, title="Scorehunt_rx-r3m (1747333800-1749067200)", config=UserConfig, StatData = ReadableArray, type = t)
 
 #beatmaps.rankedby 변경함수
 def beatmap_rankedby(text, bm):
