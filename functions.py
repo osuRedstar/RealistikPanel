@@ -1714,11 +1714,13 @@ def ParseReplay(replay):
 
 def CreateBadge():
     """Creates empty badge."""
-    mycursor.execute("INSERT INTO badges (name, icon) VALUES ('New Badge', '')")
+    #8000번대 생성 방지
+    mycursor.execute("SELECT id + 1 AS nbgid FROM badges WHERE id != 8016 ORDER BY id DESC LIMIT 1")
+    nbgid = mycursor.fetchone()[0]
+    if nbgid == 8016: nbgid = 8017 #8015가 이미 존재해서 8016은 건너뛰고 8017로 지정
+    mycursor.execute("INSERT INTO badges (id, name, icon) VALUES (%s, 'New Badge', '')", [nbgid])
     mydb.commit()
-    #checking the ID
-    mycursor.execute("SELECT id FROM badges ORDER BY id DESC LIMIT 1")
-    return mycursor.fetchone()[0]
+    return nbgid
 
 def GetPriv(PrivID: int):
     """Gets the priv data from ID."""
