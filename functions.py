@@ -2249,22 +2249,8 @@ def GetRankRequests(Page: int):
     UserIDs = [] #used for later fetching the users, so we dont have a repeat of 50 queries
     for Request in RankRequests:
         #getting song info, like 50 individual queries at peak lmao
-        TriedSet = False
-        TriedBeatmap = False
-        if Request[3] == "s":
-            mycursor.execute("SELECT song_name, beatmapset_id FROM beatmaps WHERE beatmapset_id = %s LIMIT 1", [Request[2]])
-            TriedSet = True
-        else:
-            mycursor.execute("SELECT song_name, beatmapset_id FROM beatmaps WHERE beatmap_id = %s LIMIT 1", [Request[2]])
-            TriedBeatmap = True
-        Name = mycursor.fetchall()
-        #in case it was added incorrectly for some reason?
-        if len(Name) == 0:
-            if TriedBeatmap:
-                mycursor.execute("SELECT song_name, beatmapset_id FROM beatmaps WHERE beatmapset_id = %s LIMIT 1", [Request[2]])
-            if TriedSet:
-                mycursor.execute("SELECT song_name, beatmapset_id FROM beatmaps WHERE beatmap_id = %s LIMIT 1", [Request[2]])
-            Name = mycursor.fetchall()
+        mycursor.execute("SELECT song_name, beatmapset_id FROM beatmaps WHERE beatmap_id = %s LIMIT 1", [Request[2]])
+        Name = mycursor.fetchone()
 
         #if the info is bad
         if len(Name) == 0:
@@ -2272,27 +2258,16 @@ def GetRankRequests(Page: int):
             BeatmapSetID = 0
             Cover = "https://i.ytimg.com/vi/erb4n8PW2qw/maxresdefault.jpg"
         else:
-            SongName = Name[0][0]
-            if Request[3] == "s":
-                SongName = SongName.split("[")[0] #kind of a way to get rid of diff name
-            BeatmapSetID = Name[0][1]
-            #Cover
-            if TriedBeatmap:
-                Cover = f"https://b.redstar.moe/bg/{Request[2]}"
-            if TriedSet:
-                mycursor.execute("SELECT beatmap_id FROM beatmaps WHERE beatmapset_id = %s LIMIT 1", [Request[2]])
-                bbid = mycursor.fetchone()[0]
-                Cover = f"https://b.redstar.moe/bg/{bbid}"
-
+            SongName, BeatmapSetID = Name
+            Cover = f"https://b.redstar.moe/bg/{Request[2]}"
             #Cover = f"https://assets.ppy.sh/beatmaps/{BeatmapSetID}/covers/cover.jpg"
         #nice dict
         TheRequests.append({
             "RequestID" : Request[0],
             "RequestBy" : Request[1],
             "RequestSongID" : Request[2], #not specifically song id or set id
-            "Type" : Request[3], #s = set b = single diff
-            "Time" : Request[4],
-            "TimeFormatted" : TimestampConverter(Request[4], 2),
+            "Time" : Request[3],
+            "TimeFormatted" : TimestampConverter(Request[3], 2),
             "SongName" : SongName,
             "Cover" : Cover,
             "BeatmapSetID" : BeatmapSetID
