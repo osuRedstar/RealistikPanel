@@ -2,7 +2,7 @@
 from config import UserConfig
 import mysql.connector
 from colorama import init, Fore
-import redis
+from redis import Redis
 import bcrypt
 import datetime
 import requests
@@ -112,7 +112,7 @@ except Exception as e:
     exit()
 
 try:
-    r = redis.Redis(host=UserConfig["RedisHost"], port=UserConfig["RedisPort"], password=UserConfig["RedisPassword"], db=UserConfig["RedisDb"]) #establishes redis connection
+    redis = Redis(host=UserConfig["RedisHost"], port=UserConfig["RedisPort"], password=UserConfig["RedisPassword"], db=UserConfig["RedisDb"]) #establishes redis connection
     print(f"{Fore.GREEN} Successfully connected to Redis!")
 except Exception as e:
     print(f"{Fore.RED} Failed connecting to Redis! Abandoning!\n Error: {e}{Fore.RESET}")
@@ -169,28 +169,28 @@ def DashData():
     if Alert == "": #checks if no alert
         Alert = False
 
-    totalPP = r.get("ripple:total_pp")#Not calculated by every server .decode("utf-8")
-    RegisteredUsers = r.get("ripple:registered_users")
-    OnlineUsers = r.get("ripple:online_users")
-    TotalPlays = r.get("ripple:total_plays")
-    TotalScores = r.get("ripple:total_submitted_scores")
+    totalPP = redis.get("ripple:total_pp")#Not calculated by every server .decode("utf-8")
+    RegisteredUsers = redis.get("ripple:registered_users")
+    OnlineUsers = redis.get("ripple:online_users")
+    TotalPlays = redis.get("ripple:total_plays")
+    TotalScores = redis.get("ripple:total_submitted_scores")
 
     #If we dont have variable(variable is None) will set it and get it again
     if not totalPP:
-        r.set('ripple:total_pp', 0)
-        totalPP = r.get("ripple:total_pp")
+        redis.set('ripple:total_pp', 0)
+        totalPP = redis.get("ripple:total_pp")
     if not RegisteredUsers:
-        r.set('ripple:registered_users', 1)
-        RegisteredUsers = r.get("ripple:registered_users")
+        redis.set('ripple:registered_users', 1)
+        RegisteredUsers = redis.get("ripple:registered_users")
     if not OnlineUsers:
-        r.set('ripple:online_users', 1)
-        OnlineUsers = r.get("ripple:online_users")
+        redis.set('ripple:online_users', 1)
+        OnlineUsers = redis.get("ripple:online_users")
     if not TotalPlays:
-        r.set('ripple:total_plays', 1)
-        TotalPlays = r.get("ripple:total_plays")
+        redis.set('ripple:total_plays', 1)
+        TotalPlays = redis.get("ripple:total_plays")
     if not TotalScores:
-        r.set('ripple:total_submitted_scores', 1)
-        TotalScores = r.get("ripple:total_submitted_scores")
+        redis.set('ripple:total_submitted_scores', 1)
+        TotalScores = redis.get("ripple:total_submitted_scores")
     response = {
         "RegisteredUsers" : RegisteredUsers.decode("utf-8") ,
         "OnlineUsers" : OnlineUsers.decode("utf-8"),
@@ -1141,7 +1141,7 @@ def ApplyUserEdit(form, session):
     mydb.commit()
 
     # Refresh in pep.py - Rosu only
-    r.publish("peppy:refresh_privs", {
+    redis.publish("peppy:refresh_privs", {
         "user_id": UserId
     })
 
@@ -1237,7 +1237,7 @@ def readableModsReverse(__mods: str) -> int:
 
 def WipeAccount(AccId):
     """Wipes the account with the given id."""
-    r.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
+    redis.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
         "userID" : AccId,
         "reason" : "Your account has been wiped! F"
     }))
@@ -1465,7 +1465,7 @@ def BanUser(id : int):
     else:
         mycursor.execute("UPDATE users SET privileges = 0, ban_datetime = %s WHERE id = %s", [Timestamp, id])
         RemoveFromLeaderboard(id)
-        r.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
+        redis.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
             "userID" : id,
             "reason" : f"You have been banned from {UserConfig['ServerName']}. You will not be missed."
         }))
@@ -1481,7 +1481,7 @@ def ClearHWID(id : int):
 
 def DeleteAccount(id : int):
     """Deletes the account provided. Press F to pay respects."""
-    r.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
+    redis.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
         "userID" : id,
         "reason" : f"You have been deleted from {UserConfig['ServerName']}. Bye!"
     }))
@@ -1516,7 +1516,7 @@ def DeleteAccount(id : int):
 
 def BanchoKick(id : int, reason):
     """Kicks the user from Bancho."""
-    r.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
+    redis.publish("peppy:disconnect", json.dumps({ #lets the user know what is up
         "userID" : id,
         "reason" : reason
     }))
@@ -1581,14 +1581,14 @@ def PlayStyle(Enum : int):
 def PlayerCountCollection(loop = True):
     """Designed to be ran as thread. Grabs player count every set interval and puts in array."""
     while loop:
-        CurrentCount = int(r.get("ripple:online_users").decode("utf-8"))
+        CurrentCount = int(redis.get("ripple:online_users").decode("utf-8"))
         PlayerCount.append(CurrentCount)
         time.sleep(UserConfig["UserCountFetchRate"] * 60)
         #so graph doesnt get too huge
         if len(PlayerCount) >= 100:
             PlayerCount.remove(PlayerCount[-1])
     if not loop:
-        CurrentCount = int(r.get("ripple:online_users").decode("utf-8"))
+        CurrentCount = int(redis.get("ripple:online_users").decode("utf-8"))
         PlayerCount.append(CurrentCount)
 
 def DashActData():
@@ -1943,26 +1943,26 @@ def RemoveFromLeaderboard(UserID: int):
     Modes = ["std", "ctb", "mania", "taiko"]
     for mode in Modes:
         #redis for each mode
-        r.zrem(f"ripple:leaderboard:{mode}", UserID)
+        redis.zrem(f"ripple:leaderboard:{mode}", UserID)
         if UserConfig["HasRelax"]:
             #removes from relax leaderboards
-            r.zrem(f"ripple:leaderboard_relax:{mode}", UserID)
+            redis.zrem(f"ripple:leaderboard_relax:{mode}", UserID)
         if UserConfig["HasAutopilot"]:
-            r.zrem(f"ripple:leaderboard_ap:{mode}", UserID)
+            redis.zrem(f"ripple:leaderboard_ap:{mode}", UserID)
 
         #removing from country leaderboards
         mycursor.execute("SELECT country FROM users_stats WHERE id = %s LIMIT 1", [UserID])
         Country = mycursor.fetchone()[0]
         if Country != "XX": #check if the country is not set
-            r.zrem(f"ripple:leaderboard:{mode}:{Country}", UserID)
+            redis.zrem(f"ripple:leaderboard:{mode}:{Country}", UserID)
             if UserConfig["HasRelax"]:
-                r.zrem(f"ripple:leaderboard_relax:{mode}:{Country}", UserID)
+                redis.zrem(f"ripple:leaderboard_relax:{mode}:{Country}", UserID)
             if UserConfig["HasAutopilot"]:
-                r.zrem(f"ripple:leaderboard_ap:{mode}:{Country}", UserID)
+                redis.zrem(f"ripple:leaderboard_ap:{mode}:{Country}", UserID)
 
 def UpdateBanStatus(UserID: int):
     """Updates the ban statuses in bancho."""
-    r.publish("peppy:ban", UserID)
+    redis.publish("peppy:ban", UserID)
 
 def SetBMAPSetStatus(BeatmapSet: int, Staus: int, session):
     """Sets status for all beatmaps in beatmapset."""
@@ -2193,7 +2193,7 @@ def ChangePassword(AccountID: int, NewPassword: str):
     BCrypted = CreateBcrypt(NewPassword)
     mycursor.execute("UPDATE users SET password_md5 = %s WHERE id = %s", [BCrypted, AccountID])
     mydb.commit()
-    r.publish("peppy:change_pass", {
+    redis.publish("peppy:change_pass", {
         "user_id": AccountID
     })
 
@@ -2224,7 +2224,7 @@ def ChangeUsername(AccountID: int, NewUsername: str):
     mydb.commit()
 
     try:
-        r.publish("peppy:change_name", {
+        redis.publish("peppy:change_name", {
             "user_id": AccountID
         })
     except Exception as e:
@@ -2681,7 +2681,7 @@ def cache_clan(user_id: int) -> None:
     requirement for RealistikOsu lets, or else clan tags may get out of sync.
     """
 
-    r.publish("rosu:clan_update", str(user_id))
+    redis.publish("rosu:clan_update", str(user_id))
 
 def mailSend(session, sender_email, sender_password, to_email, msg, type=""):
     sess = session.copy()
@@ -2736,7 +2736,7 @@ def sendUsernameresetMail(session, userID):
     username, to_email = mycursor.fetchone()
 
     key = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    r.set(f"RealistikPanel:UsernameResetMailAuthKey:{userID}", key, 300)
+    redis.set(f"RealistikPanel:UsernameResetMailAuthKey:{userID}", key, 300)
 
     sender_email = UserConfig['Email']
     sender_password = UserConfig['EmailPassword']
@@ -2752,10 +2752,15 @@ def sendUsernameresetMail(session, userID):
     msg.attach(MIMEText(body, 'plain'))
 
     mS = mailSend(session, sender_email, sender_password, to_email, msg, type="Username reset")
-    if mS != 200: r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{userID}"); key = mS
+    if mS != 200: redis.delete(f"RealistikPanel:UsernameResetMailAuthKey:{userID}"); key = mS
     return key
 
 def sendPwresetMail(session, userID):
+    #비번 재설정 이메일 시도 최대 10번으로 제한
+    try: limit = int(redis.get(f"RealistikPanel:pwreset:{userID}").decode("utf-8"))
+    except: limit = 0
+    if limit >= 10: return 429
+
     mycursor.execute("SELECT username, email FROM users WHERE id = %s", [userID])
     username, to_email = mycursor.fetchone()
 
@@ -2781,6 +2786,10 @@ def sendPwresetMail(session, userID):
     if mS != 200:
         mycursor.execute("DELETE FROM password_recovery WHERE k = %s AND u = %s", [f"Realistik Panel : {key}", username])
         mydb.commit(); key = mS
+
+    #비번 재설정 이메일 시도 최대 10번으로 제한
+    redis.set(f"RealistikPanel:pwreset:{userID}", limit + 1)
+
     return key
 
 def banEmailBody(userID, username, country, beatmapInfo):
@@ -2809,9 +2818,9 @@ def sendAutoBanMail(session, AuthKey, userID, to_email, beatmapInfo):
     msg.attach(MIMEText(body, 'html'))
 
     #DashData()
-    try: AuthKeyCheck = r.get(f"RealistikPanel:AutoBanMailAuthKey:{userID}").decode("utf-8")
+    try: AuthKeyCheck = redis.get(f"RealistikPanel:AutoBanMailAuthKey:{userID}").decode("utf-8")
     except: return 404
-    if AuthKey == AuthKeyCheck: r.delete(f"RealistikPanel:AutoBanMailAuthKey:{userID}")
+    if AuthKey == AuthKeyCheck: redis.delete(f"RealistikPanel:AutoBanMailAuthKey:{userID}")
     else: return 403
     return mailSend(session, sender_email, sender_password, to_email, msg, type="AutoBan")
 

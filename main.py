@@ -554,13 +554,13 @@ def pw_reset(id):
         exfireDate = int(info[3].timestamp()) + 300
         nowDate = time.time()
         key = info[1].replace("Realistik Panel : ", "")
-        
+
         #html에서 ttl 쿼리로 요청시 ttl만 반환
         ttlRequest = request.args.get("ttl")
         if ttlRequest is not None:
             ttl = int(exfireDate - nowDate)
             return Response(json.dumps({"ttl": ttl, "query": ttlRequest}, indent=2, ensure_ascii=False), content_type='application/json')
-        
+
         if exfireDate < nowDate:
             noRecoveryData = True
             mycursor.execute("DELETE FROM password_recovery WHERE u = %s AND k LIKE 'Realistik Panel : %' ORDER BY id DESC LIMIT 1", [username])
@@ -584,15 +584,27 @@ def pw_reset(id):
     if request.method == "GET":
         if noRecoveryData:
             code = sendPwresetMail(session, id)
+            if code == 429:
+                log.warning(f"{id} 비번 재설정 이메일 RateLimit 걸림!")
+                html = f"""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>RateLimit!</title>
+                    </head>
+                    <body>
+                        <h1 style="text-align: center;">This email can no longer be sent due to exceeding the sending limit. Please contact the administrator.</h1>
+                    </body>
+                    </html>
+                """
+                return Response(html, status=429)
             return render_template("pwreset_confirm.html", title="Verifying!", data=DashData(), session=session, success="Check Your Email!", config=UserConfig, code=code, idontknowemail=idontknowemail, password=None, ck=False)
         else:
             return render_template("pwreset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, idontknowemail=idontknowemail, password=None, ck=False)
     else:
         #위에 GET에서 들어오는 요청과 POST에서 다시 POST로 들어오는 요청 2개임
-        try:
-            code = request.form["code"]
-        except:
-            code = ""
+        try: code = request.form["code"]
+        except: code = ""
 
         try:
             password = request.form["password"]
@@ -614,7 +626,6 @@ def pw_reset(id):
                 </body>
                 </html>
             """
-
             return html
             return render_template("pwreset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code=code, idontknowemail=idontknowemail, password=password, ck=True) 
         except:
@@ -640,10 +651,8 @@ def pw_reset(id):
                 </body>
                 </html>
             """
-
             return html
-        else:
-            return render_template("pwreset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code=code,idontknowemail=idontknowemail, password=None, ck=False)
+        else: return render_template("pwreset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code=code,idontknowemail=idontknowemail, password=None, ck=False)
 
 """ pwreset http """
 @app.route("/frontend/pwreset", methods = ["GET", "POST"])
@@ -670,20 +679,16 @@ def name_reset(id):
     #html에서 ttl 쿼리로 요청시 ttl만 반환
     ttlRequest = request.args.get("ttl")
     if ttlRequest is not None:
-        ttl = r.ttl(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
+        ttl = redis.ttl(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
         return Response(json.dumps({"ttl": ttl, "query": ttlRequest}, indent=2, ensure_ascii=False), content_type='application/json')
 
     idontknowemail = f"https://{ServerDomain}/settings"
     
-    try:
-        key = r.get(f"RealistikPanel:UsernameResetMailAuthKey:{id}").decode("utf-8")
-    except:
-        key = None
+    try: key = redis.get(f"RealistikPanel:UsernameResetMailAuthKey:{id}").decode("utf-8")
+    except: key = None
 
-    """ if key is None:
-        noRecoveryData = True
-    else:
-        noRecoveryData = False """
+    """ if key is None: noRecoveryData = True
+    else: noRecoveryData = False """
 
     if request.method == "GET":
         if key is None:
@@ -695,17 +700,15 @@ def name_reset(id):
             return render_template("namereset_confirm.html", title="Verifying! 22", data=DashData(), session=session, success="Check Your Email! 22", config=UserConfig, code=key, idontknowemail=idontknowemail, username=None, ck=False)
     else:
         #위에 GET에서 들어오는 요청과 POST에서 다시 POST로 들어오는 요청 2개임
-        try:
-            code = request.form["code"]
-        except:
-            code = ""
+        try: code = request.form["code"]
+        except: code = ""
 
         try:
             NewUsername = request.form["NewUsername"]
 
             CU = ChangeUsername(id, NewUsername)
             if CU["code"]:
-                r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
+                redis.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
 
                 html = f"""
                     <!DOCTYPE html>
@@ -719,7 +722,6 @@ def name_reset(id):
                     </body>
                     </html>
                 """
-
                 return html
                 return render_template("namereset_confirm.html", title="Password Changed!", data=DashData(), session=session, success="Password Changed!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=NewUsername, ck=True) 
             else:
@@ -734,7 +736,7 @@ def name_reset(id):
                 return render_template("namereset_confirm.html", title="Wrong Key!", data=DashData(), session=session, error="Wrong Key!", config=UserConfig, code=code, idontknowemail=idontknowemail, username=None, ck=False)
         else:
             log.warning("비번 재설정 키 만료됨!")
-            r.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
+            redis.delete(f"RealistikPanel:UsernameResetMailAuthKey:{id}")
 
             html = f"""
             <!DOCTYPE html>
@@ -748,7 +750,6 @@ def name_reset(id):
             </body>
             </html>
         """
-
         return html
 
 """ pwreset http """
