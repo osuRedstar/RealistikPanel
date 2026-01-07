@@ -72,8 +72,14 @@
             <div class="form-group">
                 <label>osuver</label>
                 <input type="text" class="form-control" name="osuver" value="{{ osuver['ver'] }}" readonly>
-                <a>Client Ban Count</a>
+                <label>Client Ban Count</label>
+                {% if osuver["ver"] %}
+                    <a style="color: red;" target="_blank" href="/bannedusers_list?q=id&osuver={{ osuver['ver'] }}"> | bannedusers_list</a>
+                    <a style="color: yellow;" target="_blank" href="/restrictedusers_list?q=id&osuver={{ osuver['ver'] }}"> | restrictedusers_list</a>
+                {% endif %}
                 <input type="text" class="form-control" name="hw_id" value="{{ osuver['cnt'] }}" readonly>
+                <label>Last Connect</label>
+                <input type="text" class="form-control" name="lastconnect" value="{{ regiDate }}" readonly>
             </div>
             <!-- 추가함 -->
             <div class="form-group">

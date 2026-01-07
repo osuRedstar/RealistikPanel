@@ -11,6 +11,7 @@ import time
 import hashlib 
 import json
 import pycountry
+import pytz
 from osrparse import *
 import os
 from changelogs import Changelogs
@@ -203,41 +204,37 @@ def DashData():
 
 def LoginHandler(username, password):
     """Checks the passwords and handles the sessions."""
-    mycursor.execute("SELECT username, password_md5, ban_datetime, privileges, id FROM users WHERE username_safe = %s", [RippleSafeUsername(username)])
+    mycursor.execute("SELECT u.id, u.username, u.password_md5, us.country, u.ban_datetime, u.privileges FROM users AS u JOIN users_stats AS us ON us.id = u.id WHERE u.username_safe = %s", [RippleSafeUsername(username)])
     User = mycursor.fetchall()
-    if len(User) == 0:
-        #when user not found
-        return False, "The user was not found. Maybe you have made a typo?"
+    if len(User) == 0: return False, "The user was not found. Maybe you have made a typo?" #when user not found
     else:
         User = User[0]
         #Stores grabbed data in variables for easier access
-        Username = User[0]
-        PassHash = User[1]
-        IsBanned = User[2]
-        Privilege = User[3]
-        UserID = User[4]
+        UserID = User[0]
+        Username = User[1]
+        PassHash = User[2]
+        Country = User[3]
+        IsBanned = User[4]
+        Privilege = User[5]
         
         #dont  allow the bot account to log in (in case the server has a MASSIVE loophole)
-        if UserID == 999:
-            return [False, "You may not log into the bot account."]
+        if UserID == 999: return [False, "You may not log into the bot account."]
 
         #shouldve been done during conversion but eh
-        if not IsBanned == "0" or not IsBanned:
-            return False, "It seems you have been banned... Yikes..."
+        if not IsBanned == "0" or not IsBanned: return False, "It seems you have been banned... Yikes..."
         else:
             if HasPrivilege(UserID):
                 if checkpw(PassHash, password):
                     return [True, "You have been logged in!", { #creating session
                         "LoggedIn" : True,
+                        "Country" : Country,
                         "AccountId" : UserID,
                         "AccountName" : Username,
                         "Privilege" : Privilege,
-                        "exp" : datetime.datetime.utcnow() + datetime.timedelta(hours=2) #so the token expires
+                        "exp" : datetime.datetime.utcnow() + datetime.timedelta(hours=1) #so the token expires
                     }]
-                else:
-                     return False, "The password you have entered is incorrect!"
-            else:
-                return False, "The account you are attempting to log into is missing the appropriate privileges to carry out this action!"
+                else: return False, "The password you have entered is incorrect!"
+            else: return False, "The account you are attempting to log into is missing the appropriate privileges to carry out this action!"
 
 def TimestampConverter(timestamp, NoDate=2):
     """Converts timestamps into readable time."""
@@ -969,22 +966,17 @@ def UserData(UserID):
     #Fetches the IP
     mycursor.execute("SELECT ip FROM ip_user WHERE userid = %s LIMIT 1", [UserID])
     Ip = mycursor.fetchone()
-    if Ip == None:
-        Ip = "0.0.0.0"
-    else:
-        Ip = Ip[0]
+    Ip = Ip[0] if Ip else "0.0.0.0"
     #gets privilege name
     mycursor.execute("SELECT name FROM privileges_groups WHERE privileges = %s LIMIT 1", [Data2[2]])
     PrivData = mycursor.fetchone()
-    if PrivData == None:
-        PrivData = [[f"Unknown ({Data2[2]})"]]
+    if PrivData == None: PrivData = [[f"Unknown ({Data2[2]})"]]
     #adds new info to dict
     #I dont use the discord features from RAP so i didnt include the discord settings but if you complain enough ill add them
     try:
         mycursor.execute("SELECT freezedate FROM users WHERE id = %s LIMIT 1", [UserID])
         Freeze = mycursor.fetchone()
-    except:
-        Freeze = False
+    except: Freeze = False
   
     Data["UserpageContent"] = Data1[0]
     Data["UserColour"] = Data1[1]

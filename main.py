@@ -98,99 +98,79 @@ def RecentRegisteredUsers():
 
 @app.route("/onlineusers_list")
 def OnlineUserList():
-    query = request.args.get("q")
-    log.debug("onlinelist query = {}".format(query))
-    if query is None:
-        log.debug("리다이렉트 댐")
-        return redirect(f"https://admin.{ServerDomain}/onlineusers_list?q=id")
+    query = request.args.get("q", "id")
     #sql 인젝션 방지 (?)
-    elif query != "id" and query != "username" and query != "current_status":
+    if query != "id" and query != "username" and query != "current_status":
         log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
         return "조회 되지 않는 쿼리 입력 : {}".format(query)
 
     #Nerina
-    mycursor.execute("SELECT id, username, current_status FROM users_stats WHERE current_status NOT IN ('Offline') ORDER BY %s", [query]);
+    mycursor.execute("SELECT us.id, u.osuver, us.username, us.current_status FROM users_stats AS us JOIN users AS u ON u.id = us.id WHERE us.current_status NOT IN ('Offline') ORDER BY %s", [query]);
     data = mycursor.fetchall();
 
     row_headers = [x[0] for x in mycursor.description]
     values = list(data)
 
     result = []
-
-    for i in values:
-        result.append(dict(zip(row_headers, i)))
+    for i in values: result.append(dict(zip(row_headers, i)))
     
     return Response(json.dumps([len(data), result], indent=2, ensure_ascii=False), content_type='application/json')
-
     #return render_template("dash.html", title="Dashboard", session=session, data=DashData(), plays=RecentPlays(), config=UserConfig, Graph=DashActData(), MostPlayed=GetMostPlayed())
 
 @app.route("/restrictedusers_list")
 def RestrictedUserList(dash=False):
     #/dash 에러 방지
-    if not dash:
-        query = request.args.get("q")
-        log.debug("restrictedlist query = {}".format(query))
-        if query is None:
-            log.debug("리다이렉트 댐")
-            return redirect(f"https://admin.{ServerDomain}/restrictedusers_list?q=id")
-        #sql 인젝션 방지 (?)
-        elif query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
-            log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
-            return "조회 되지 않는 쿼리 입력 : {}".format(query)
+    query = request.args.get("q", "id")
+    osuver = request.args.get("osuver")
+    #sql 인젝션 방지 (?)
+    if query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
+        log.warning("조회 되지 않는 쿼리 입력 : {}".format(query))
+        return "조회 되지 않는 쿼리 입력 : {}".format(query)
+
+    if not osuver:
+        query = [query]; osuver = ""
     else:
-        query = "id"
-        log.info("/dash에서 /restrictedusers_list 속 함수 요청댐. 에러 방지를 위하여 쿼리 리다이렉트 비활성화 (?)")
+        query = [osuver, query]; osuver = " and osuver = %s"
 
     #Nerina
-    mycursor.execute("SELECT id, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 2 ORDER BY %s", [query]);
+    mycursor.execute(f"SELECT id, osuver, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 2{osuver} ORDER BY %s", query);
     data = mycursor.fetchall();
 
     row_headers = [x[0] for x in mycursor.description]
     values = list(data)
 
     result = []
+    for i in values: result.append(dict(zip(row_headers, i)))
 
-    for i in values:
-        result.append(dict(zip(row_headers, i)))
-    
-    if dash:
-        return json.dumps([len(data), result])
-    else:
-        return Response(json.dumps([len(data), result], indent=2, ensure_ascii=False), content_type='application/json')
+    if dash: return json.dumps([len(data), result])
+    else: return Response(json.dumps([len(data), result], indent=2, ensure_ascii=False), content_type='application/json')
 
 @app.route("/bannedusers_list")
 def BannedUserList(dash=False):
-    #/dash 에러 방지
-    if not dash:
-        query = request.args.get("q")
-        log.debug(f"bannedlist query = {query}")
-        if query is None:
-            log.debug("리다이렉트 댐")
-            return redirect(f"https://admin.{ServerDomain}/bannedusers_list?q=id")
-        #sql 인젝션 방지 (?)
-        elif query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
-            log.warning(f"조회 되지 않는 쿼리 입력 : {query}")
-            return f"조회 되지 않는 쿼리 입력 : {query}"
+    query = request.args.get("q", "id")
+    osuver = request.args.get("osuver")
+    #sql 인젝션 방지 (?)
+    if query != "id" and query != "username" and query != "ban_datetime" and query != "privileges":
+        log.warning(f"조회 되지 않는 쿼리 입력 : {query}")
+        return f"조회 되지 않는 쿼리 입력 : {query}"
+
+    if not osuver:
+        query = [query]; osuver = ""
     else:
-        query = "id"
-        log.info("/dash에서 /bannedusers_list 속 함수 요청댐. 에러 방지를 위하여 쿼리 리다이렉트 비활성화 (?)")
+        query = [osuver, query]; osuver = " and osuver = %s"
 
     #Nerina
-    mycursor.execute("SELECT id, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 0 ORDER BY %s", [query]);
+    mycursor.execute(f"SELECT id, osuver, username, ban_datetime, privileges FROM users WHERE ban_datetime NOT IN ('0') and privileges = 0{osuver} ORDER BY %s", query);
     data = mycursor.fetchall();
 
     row_headers = [x[0] for x in mycursor.description]
     values = list(data)
 
     result = []
+    for i in values: result.append(dict(zip(row_headers, i)))
 
-    for i in values:
-        result.append(dict(zip(row_headers, i)))
-    
-    if dash:
-        return json.dumps([len(data), result])
-    else:
-        return Response(json.dumps([len(data), result], indent=2, ensure_ascii=False), content_type='application/json')
+    if dash: return json.dumps([len(data), result])
+    else: return Response(json.dumps([len(data), result], indent=2, ensure_ascii=False), content_type='application/json')
 
 @app.route("/status")
 def status():
@@ -1046,7 +1026,7 @@ def SystemSettings():
 
 @app.route("/user/edit/<id>", methods = ["GET", "POST"])
 def EditUser(id):
-    def client_ver():
+    def client_ver() -> dict:
         mycursor.execute("SELECT osuver FROM users WHERE id = %s", [id])
         osuver = mycursor.fetchone()[0]
         mycursor.execute("SELECT privileges, COUNT(*) AS cnt FROM users WHERE osuver = %s AND privileges IN (0, 2) GROUP BY privileges", [osuver])
@@ -1056,28 +1036,32 @@ def EditUser(id):
         elif len(cnt) == 2: cnt = f"Ban : {cnt[0][1]}, Restrict : {cnt[1][1]}"
         else: cnt = f"? : {cnt}"
         return {"ver": osuver, "cnt": cnt}
-    def hw_user_info():
+    def hw_user_info() -> tuple:
         mycursor.execute("SELECT * FROM hw_user WHERE userid = %s", [id])
         return mycursor.fetchone()
+    def regiDate(cc: str) -> str:
+        mycursor.execute("SELECT u.latest_activity, us.current_status FROM users AS u JOIN users_stats AS us ON us.id = u.id WHERE u.id = %s", [id])
+        ut, stat = mycursor.fetchone()
+        try:
+            zones = pytz.country_timezones.get(cc.upper())
+            if not zones: return "N/A"
+            return f"{datetime.datetime.fromtimestamp(ut, pytz.utc).astimezone(pytz.timezone(zones[0])).strftime('%Y-%m-%d %H:%M:%S')} | {stat} | ({cc} Time)"
+        except: return "Error"
 
     if request.method == "GET":
-        if HasPrivilege(session["AccountId"], 6):
-            return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), ShowIPs = HasPrivilege(session["AccountId"], 16))
-        else:
-            return NoPerm(session, request.url)
+        if HasPrivilege(session["AccountId"], 6): return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, regiDate = regiDate(session["Country"]), osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), ShowIPs = HasPrivilege(session["AccountId"], 16))
+        else: return NoPerm(session, request.url)
     if request.method == "POST":
         if HasPrivilege(session["AccountId"], 6):
             try:
                 ApplyUserEdit(request.form, session)
                 RAPLog(session["AccountId"], f"has edited the user {request.form.get('username', 'NOT FOUND')}")
-                return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), success=f"User {request.form.get('username', 'NOT FOUND')} has been successfully edited!", ShowIPs = HasPrivilege(session["AccountId"], 16))
+                return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, regiDate = regiDate(session["Country"]), osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), success=f"User {request.form.get('username', 'NOT FOUND')} has been successfully edited!", ShowIPs = HasPrivilege(session["AccountId"], 16))
             except Exception as e:
                 print(e)
                 ConsoleLog("Error while editing user!", f"{e}", 3)
-                return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), error="An internal error has occured while editing the user! An error has been logged to the console.", ShowIPs = HasPrivilege(session["AccountId"], 16))
-        else:
-            return NoPerm(session, request.url)
-
+                return render_template("edituser.html", data=DashData(), session=session, title="Edit User", config=UserConfig, uid=id, regiDate = regiDate(session["Country"]), osuver=client_ver(), hw_user_info=hw_user_info(), UserData=UserData(id), Privs = GetPrivileges(), UserBadges= GetUserBadges(id), badges=GetBadges(), error="An internal error has occured while editing the user! An error has been logged to the console.", ShowIPs = HasPrivilege(session["AccountId"], 16))
+        else: return NoPerm(session, request.url)
 
 @app.route("/logs/<page>")
 def Logs(page):
