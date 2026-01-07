@@ -197,10 +197,9 @@ def status():
     query = request.args.get("json")
     log.debug("status query = {}".format(query))
     if query == "1":
-        try:
-            MediaServer = requests.get(f"https://b.{ServerDomain}/status", headers=requestHeaders, timeout=1).json()
+        try: MediaServer = requests.get(f"https://b.{ServerDomain}/status?isinfo=0", headers=requestHeaders, timeout=1).json()
         except Exception as err:
-            print(f"[ERROR] https://b.{ServerDomain}/status: ", err)
+            print(f"[ERROR] https://b.{ServerDomain}/status?isinfo=0: ", err)
             MediaServer = {"code" : 503, "oszCount" : -1}
         return Response(json.dumps({"Bancho": BanchoStatus().json, "LETS": LetsStatus().json, "API": ApiStatus().json, "MediaServer": MediaServer}, indent=2, ensure_ascii=False), content_type='application/json')
     return render_template("dash.html", title="Dashboard", session=session, data=DashData(), restricteduserlist=json.loads(RestrictedUserList(dash=True))[0], banneduserlist=json.loads(BannedUserList(dash=True))[0], plays=RecentPlays(), config=UserConfig, Graph=DashActData(), MostPlayed=GetMostPlayed())
@@ -1284,11 +1283,9 @@ def ClanDeleteConfirm(ClanID):
 
 
 #릴렉 유저별 최근 기록 조회
-def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
-    if rx:
-        RXorAP = ["rx", "_relax", ""]
-    elif ap:
-        RXorAP = ["ap", "_ap", ""]
+def RecentPlays_user(text: str, uid: int, gamemode: int = 0, minpp: int = 0, score_id: int = None, rx: bool = False, ap: bool = False):
+    if rx: RXorAP = ["rx", "_relax", ""]
+    elif ap: RXorAP = ["ap", "_ap", ""]
     else: RXorAP = ["users", "", ""]
 
     try:
@@ -1312,10 +1309,15 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
             mode = "std"
             log.error("gamemode = {}".format(gamemode))
 
-        if text == "ORDER_Recent":
-            order_by = "s.time"
-        elif text == "ORDER_pp":
-            order_by = "s.pp"
+        if text == "ORDER_Recent": order_by = "s.time"
+        elif text == "ORDER_pp": order_by = "s.pp"
+
+        if score_id:
+            where = "s.id = %s"
+            query = [0, score_id]
+        else:
+            where = "s.completed != 0 and s.userid = %s AND s.pp >= %s and s.play_mode = %s"
+            query = [minpp, uid, minpp, gamemode]
 
         SQL = f"""
             SELECT 
@@ -1338,18 +1340,18 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
                 b.beatmapset_id,
                 b.ranked
             FROM (
-                SELECT * FROM scores{RXorAP[1]} WHERE pp >= {minpp}
+                SELECT * FROM scores{RXorAP[1]} WHERE pp >= %s
             ) AS s
             LEFT JOIN users AS u ON u.id = s.userid
             LEFT JOIN (
                 SELECT DISTINCT beatmap_md5, song_name, beatmap_id, beatmapset_id, ranked
                 FROM beatmaps
             ) AS b ON b.beatmap_md5 = s.beatmap_md5
-            WHERE s.completed != 0 and s.userid = {uid} AND s.pp >= {minpp} and s.play_mode = {gamemode}
+            WHERE {where}
             ORDER BY {order_by} DESC
             LIMIT 1000;
         """
-        mycursor.execute(SQL)
+        mycursor.execute(SQL, query)
         plays = mycursor.fetchall()
         log.info(f"DB조회 완료! | len(plays) = {len(plays)}")
 
@@ -1473,50 +1475,56 @@ def RecentPlays_user(text, uid, gamemode = 0, minpp = 0, rx=False, ap=False):
 @app.route("/u/vn/<uid>", methods = ["GET", "POST"])
 def u_vn_bestPP(uid):
     gamemode = request.args.get("mode")
+    score_id = request.args.get("score_id")
     if gamemode is None:
-        return redirect(f"https://admin.{ServerDomain}/u/vn/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/vn/{uid}?mode=0{f'&score_id={score_id}' if score_id else ''}")
     MinPP = request.form.get("minpp", 0)
-    return render_template("vn_userpage.html", data=DashData(), session=session, title="Vanilla User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP), MinPP = MinPP, type = "ORDER by pp")
+    return render_template("vn_userpage.html", data=DashData(), session=session, title="Vanilla User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, score_id), MinPP = MinPP, score_id = score_id, type = "ORDER by pp")
 
 @app.route("/u/vn/recent/<uid>", methods = ["GET", "POST"])
 def u_vn_recent(uid):
     gamemode = request.args.get("mode")
+    score_id = request.args.get("score_id")
     if gamemode is None:
-        return redirect(f"https://admin.{ServerDomain}/u/vn/recent/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/vn/recent/{uid}?mode=0{f'&score_id={score_id}' if score_id else ''}")
     MinPP = request.form.get("minpp", 0)
-    return render_template("vn_userpage.html", data=DashData(), session=session, title="Vanilla UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP), MinPP = MinPP, type = "ORDER by time")
+    return render_template("vn_userpage.html", data=DashData(), session=session, title="Vanilla UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, score_id), MinPP = MinPP, score_id = score_id, type = "ORDER by time")
 
 @app.route("/u/rx/<uid>", methods = ["GET", "POST"])
 def u_rx_bestPP(uid):
     gamemode = request.args.get("mode")
+    score_id = request.args.get("score_id")
     if gamemode is None:
-        return redirect(f"https://admin.{ServerDomain}/u/rx/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/rx/{uid}?mode=0{f'&score_id={score_id}' if score_id else ''}")
     MinPP = request.form.get("minpp", 0)
-    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by pp")
+    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, score_id, rx=True), MinPP = MinPP, score_id = score_id, type = "ORDER by pp")
 
 @app.route("/u/rx/recent/<uid>", methods = ["GET", "POST"])
 def u_rx_recent(uid):
     gamemode = request.args.get("mode")
+    score_id = request.args.get("score_id")
     if gamemode is None:
-        return redirect(f"https://admin.{ServerDomain}/u/rx/recent/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/rx/recent/{uid}?mode=0{f'&score_id={score_id}' if score_id else ''}")
     MinPP = request.form.get("minpp", 0)
-    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, rx=True), MinPP = MinPP, type = "ORDER by time")
+    return render_template("rx_userpage.html", data=DashData(), session=session, title="Relax UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, score_id, rx=True), MinPP = MinPP, score_id = score_id, type = "ORDER by time")
 
 @app.route("/u/ap/<uid>", methods = ["GET", "POST"])
 def u_ap_bestPP(uid):
     gamemode = request.args.get("mode")
+    score_id = request.args.get("score_id")
     if gamemode is None:
-        return redirect(f"https://admin.{ServerDomain}/u/ap/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/ap/{uid}?mode=0{f'&score_id={score_id}' if score_id else ''}")
     MinPP = request.form.get("minpp", 0)
-    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by pp")
+    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot User Page (Best pp)", config=UserConfig, StatData = RecentPlays_user("ORDER_pp", uid, int(gamemode), MinPP, score_id, ap=True), MinPP = MinPP, score_id = score_id, type = "ORDER by pp")
 
 @app.route("/u/ap/recent/<uid>", methods = ["GET", "POST"])
 def u_ap_recent(uid):
     gamemode = request.args.get("mode")
+    score_id = request.args.get("score_id")
     if gamemode is None:
-        return redirect(f"https://admin.{ServerDomain}/u/ap/recent/{uid}?mode=0")
+        return redirect(f"https://admin.{ServerDomain}/u/ap/recent/{uid}?mode=0{f'&score_id={score_id}' if score_id else ''}")
     MinPP = request.form.get("minpp", 0)
-    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, ap=True), MinPP = MinPP, type = "ORDER by time")
+    return render_template("ap_userpage.html", data=DashData(), session=session, title="Autopilot UserPage (Recent)", config=UserConfig, StatData = RecentPlays_user("ORDER_Recent", uid, int(gamemode), MinPP, score_id, ap=True), MinPP = MinPP, score_id = score_id, type = "ORDER by time")
 
 @app.route("/stats", methods = ["GET", "POST"])
 def StatsRoute():
@@ -1551,44 +1559,31 @@ def PPApi(id):
         return jsonify({"code" : 500})
 #api mirrors
 @app.route("/ping")
-def Status():
-    return Response(json.dumps({"code": 200}, indent=2, ensure_ascii=False), content_type='application/json')
+def Status(): return Response(json.dumps({"code": 200}, indent=2, ensure_ascii=False), content_type='application/json')
 @app.route("/js/status/api")
 def ApiStatus():
-    try:
-        return jsonify(requests.get(UserConfig["ServerURL"] + "api/v1/ping", headers=requestHeaders, verify=False, timeout=1).json())
+    try: return jsonify(requests.get(f'{UserConfig["ServerURL"]}api/v1/ping', headers=requestHeaders, verify=False, timeout=3).json())
     except Exception as err:
         print("[ERROR] /js/status/api: ", err)
-        return jsonify({
-            "code" : 503
-        })
+        return jsonify({"code" : 503})
 @app.route("/js/status/lets")
 def LetsStatus():
-    try:
-        return jsonify(requests.get(UserConfig["LetsAPI"] + "v1/status", headers=requestHeaders, verify=False, timeout=1).json()) #this url to provide a predictable result
+    try: return jsonify(requests.get(f'{UserConfig["LetsAPI"]}v1/status', headers=requestHeaders, verify=False, timeout=3).json()) #this url to provide a predictable result
     except Exception as err:
         print("[ERROR] /js/status/lets: ", err)
-        return jsonify({
-            "server_status" : 0
-        })
+        return jsonify({"server_status" : 0})
 @app.route("/js/status/bancho")
 def BanchoStatus():
-    try:
-        return jsonify(requests.get(UserConfig["BanchoURL"] + "api/v1/serverStatus", headers=requestHeaders, verify=False, timeout=1).json()) #this url to provide a predictable result
+    try: return jsonify(requests.get(f'{UserConfig["BanchoURL"]}api/v1/serverStatus', headers=requestHeaders, verify=False, timeout=3).json()) #this url to provide a predictable result
     except Exception as err:
         print("[ERROR] /js/status/bancho: ", err)
-        return jsonify({
-            "result" : 0
-        })
+        return jsonify({"result" : 0})
 @app.route("/js/status/mediaserver")
 def MediaserverStatus():
-    try:
-        return jsonify(requests.get(UserConfig["ServerURL"].replace("://", "://b.") + "status", headers=requestHeaders, verify=False, timeout=3).json()) #this url to provide a predictable result
+    try: return jsonify(requests.get(f'https://b.{ServerDomain}/status?isinfo=0', headers=requestHeaders, verify=False, timeout=3).json()) #this url to provide a predictable result
     except Exception as err:
         print("[ERROR] /js/status/mediaserver: ", err)
-        return jsonify({
-            "code" : 500
-        })
+        return jsonify({"code" : 500})
 
 #actions
 @app.route("/actions/wipe/<AccountID>")

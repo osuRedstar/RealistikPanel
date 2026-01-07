@@ -29,6 +29,18 @@
             </div>
         </form>
 
+        Choose the score ID value that plays are required to have to appear on the list. The current value is <b>{{ score_id }}</b>.
+        <form onsubmit="redirectWithScoreID(); return false;">
+            <div class="row">
+                <div class="col-12 col-md-6 col-lg-6">
+                    <input id="score_id" type="number" class="form-control" name="score_id" value="{{ score_id }}" style="margin-top: 5px; margin-bottom: 10px;">
+                </div>
+                <div class="col-12 col-md-6 col-lg-6">
+                    <button class="btn btn-success" type="button" onclick="redirectWithScoreID()" style="margin-top: 8px;">Filter</button>
+                </div>
+            </div>
+        </form>
+
         <br>
         <form style="text-align: center;">
             <select style="width: 200px; text-align: center;" class="form-control" id="mode_box" name="language" onchange="chageLangSelect()">
@@ -69,6 +81,12 @@
                 var selectValue = langSelect.options[langSelect.selectedIndex].value;
                 location.replace(`?mode=${selectValue}`);
                 
+            }
+
+            function redirectWithScoreID() {
+                const p = new URLSearchParams(location.search);
+                p.set("score_id", document.getElementById('score_id').value);
+                location.search = p;
             }
         </script>
 
