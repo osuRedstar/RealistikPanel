@@ -1297,8 +1297,8 @@ def RecentPlays_user(text: str, uid: int, gamemode: int = 0, minpp: int = 0, sco
         elif text == "ORDER_pp": order_by = "s.pp"
 
         if score_id:
-            where = "s.id = %s"
-            query = [0, score_id]
+            where = "s.userid = %s AND s.id = %s"
+            query = [0, uid, score_id]
         else:
             where = "s.completed != 0 and s.userid = %s AND s.pp >= %s and s.play_mode = %s"
             query = [minpp, uid, minpp, gamemode]
